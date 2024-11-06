@@ -99,6 +99,7 @@ async def mark_app_as_installed(request: MarkAppInstalledRequest, db: Session = 
     query_model.shop=request.shop
     query_model.email=request.email
     query_model.installed =True
+    query_model.deleted_at=None
 
     db.add(query_model)
     db.commit()
@@ -106,16 +107,27 @@ async def mark_app_as_installed(request: MarkAppInstalledRequest, db: Session = 
     return {"message": "App marked as installed successfully"}
 
 @router.patch("/markAppAsUnInstalled")
-async def mark_app_as_installed(shop:str, db: Session = Depends(get_db)):
-    dt=datetime.now()
+async def mark_app_as_uninstalled(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    shop = data.get("shop")
+    
+    if not shop:
+        raise HTTPException(status_code=400, detail="Shop parameter is required")
+
+    # Find the shop in the database
     query_model = db.query(models.shops).filter(
         models.shops.deleted_at == None,
         models.shops.shop == shop,
         models.shops.installed == True
     ).first()
-    query_model.installed =False
-    query_model.deleted_at=dt
+
+    if not query_model:
+        raise HTTPException(status_code=404, detail="Shop not found or already uninstalled")
+
+    # Mark as uninstalled
+    query_model.installed = False
+    query_model.deleted_at = datetime.now()
     db.add(query_model)
     db.commit()
 
-    return {"message": "App marked as Uninstalled successfully"}
+    return {"message": "App marked as uninstalled successfully"}
