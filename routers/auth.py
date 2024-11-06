@@ -1,7 +1,7 @@
 
 from datetime import datetime, timedelta
 from typing import Annotated
-from fastapi import APIRouter, Depends, FastAPI, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 import models
 from sqlalchemy.orm import Session
 from database import engine ,get_db
@@ -31,6 +31,12 @@ class Edit_Reorder(BaseModel):
     product_id: str
     reorder_days: int
 
+class AppInstallationStatus(BaseModel):
+    installed: bool
+
+class MarkAppInstalledRequest(BaseModel):
+    shop: str
+    email:str
 
 @router.get('/reorder_details')
 async def get_reorder_detail(request: Request,db: Session = Depends(get_db)):
@@ -76,3 +82,40 @@ async def edit_reorder(reorder: Edit_Reorder,productId:str,db: Session = Depends
     db.query(models.reorder).filter(models.reorder.product_id==productId).update({"reorder_days":reorder.reorder_days})
     db.commit()
     return {"message": "Updated successfully"}
+
+@router.get("/checkAppInstalled", response_model=AppInstallationStatus)
+async def check_app_installed(shop: str, db: Session = Depends(get_db)):
+    result = db.query(models.shops).filter((models.shops.deleted_at==None)&(models.shops.shop==shop)&(models.shops.installed==True)).all()
+    print(result)
+    if result:
+        return {"installed": True}
+
+    return {"installed": False}
+
+@router.post("/markAppAsInstalled")
+async def mark_app_as_installed(request: MarkAppInstalledRequest, db: Session = Depends(get_db)):
+
+    query_model =models.shops()
+    query_model.shop=request.shop
+    query_model.email=request.email
+    query_model.installed =True
+
+    db.add(query_model)
+    db.commit()
+
+    return {"message": "App marked as installed successfully"}
+
+@router.patch("/markAppAsUnInstalled")
+async def mark_app_as_installed(shop:str, db: Session = Depends(get_db)):
+    dt=datetime.now()
+    query_model = db.query(models.shops).filter(
+        models.shops.deleted_at == None,
+        models.shops.shop == shop,
+        models.shops.installed == True
+    ).first()
+    query_model.installed =False
+    query_model.deleted_at=dt
+    db.add(query_model)
+    db.commit()
+
+    return {"message": "App marked as Uninstalled successfully"}
