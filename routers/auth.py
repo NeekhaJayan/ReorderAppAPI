@@ -36,6 +36,7 @@ class AppInstallationStatus(BaseModel):
 
 class MarkAppInstalledRequest(BaseModel):
     shop: str
+    
 
 @router.get('/reorder_details')
 async def get_reorder_detail(request: Request,db: Session = Depends(get_db)):
