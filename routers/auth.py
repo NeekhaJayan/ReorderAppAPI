@@ -36,7 +36,6 @@ class AppInstallationStatus(BaseModel):
 
 class MarkAppInstalledRequest(BaseModel):
     shop: str
-    email:str
 
 @router.get('/reorder_details')
 async def get_reorder_detail(request: Request,db: Session = Depends(get_db)):
@@ -97,7 +96,6 @@ async def mark_app_as_installed(request: MarkAppInstalledRequest, db: Session = 
 
     query_model =models.shops()
     query_model.shop=request.shop
-    query_model.email=request.email
     query_model.installed =True
     query_model.deleted_at=None
 
