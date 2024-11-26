@@ -3,9 +3,10 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 import models
+from models import Products,Shop
 from sqlalchemy.orm import Session
 from database import engine ,get_db
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 
@@ -19,114 +20,60 @@ models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
 
 
-class Reorder(BaseModel):
-
-    shop: str
-    email: str
-    product_id: str
-    product_title:str
+class ProductCreate(BaseModel):
+    shop_id: int
+    shopify_product_id: str
+    title: str
     reorder_days: int
 
-class Edit_Reorder(BaseModel):
-    product_id: str
-    reorder_days: int
+class ShopCreate(BaseModel):
+    shopify_domain: str
+    shop_name: str = None
+    shop_logo: str = None  # Optional field
+    email: EmailStr =None # Ensures email is valid
+    message_template_id: int = None 
 
-class AppInstallationStatus(BaseModel):
-    installed: bool
-
-class MarkAppInstalledRequest(BaseModel):
-    shop: str
     
+@router.post("/products/", response_model=dict)
+def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+    # Create a new product instance
+    new_product = Products(
+        shop_id=product.shop_id,
+        shopify_product_id=product.shopify_product_id,
+        title=product.title,
+        reorder_days=product.reorder_days,
+    )
+    try:
+        # Add the new product to the database
+        db.add(new_product)
+        db.commit()
+        db.refresh(new_product)  # Refresh to get the ID
+        return {"message": "Product created successfully", "product_id": new_product.product_id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
 
-@router.get('/reorder_details')
-async def get_reorder_detail(request: Request,db: Session = Depends(get_db)):
 
-    getProductData_model=db.query(models.reorder).filter(models.reorder.deleted_date==None).all()
-    productData=[]
-    for row in getProductData_model:
-        product={
-            "reorderid":row.reorder_id,
-            "productId":row.product_id,
-            "productTitle":row.product_title,
-            "reorder_days":row.reorder_days,
-            "created_at":row.created_date,
-        }
-        productData.append(product)
-    return productData
-
-
-@router.post("/reorder")
-async def create_reorder(reorder: Reorder,db: Session = Depends(get_db)):
-    # reorder_date = datetime.now() + datetime.timedelta(days=reorder.reorder_days)
-    query_model =models.reorder()
-    query_model.shop=reorder.shop
-    query_model.email=reorder.email
-    query_model.product_id=reorder.product_id
-    query_model.product_title=reorder.product_title
-    query_model.reorder_days=reorder.reorder_days
-
-    db.add(query_model)
-    db.commit()
-    reorderDetails=[{
-            "reorderid":query_model.reorder_id,
-            "productId":query_model.product_id,
-            "productTitle":query_model.product_title,
-            "reorder_days":query_model.reorder_days,
-            "created_at":query_model.created_date,
-        }]
-    return reorderDetails
-
-@router.patch("/reorder/{productId}")
-async def edit_reorder(reorder: Edit_Reorder,productId:str,db: Session = Depends(get_db)):
-
-    db.query(models.reorder).filter(models.reorder.product_id==productId).update({"reorder_days":reorder.reorder_days})
-    db.commit()
-    return {"message": "Updated successfully"}
-
-@router.get("/checkAppInstalled", response_model=AppInstallationStatus)
-async def check_app_installed(shop: str, db: Session = Depends(get_db)):
-    result = db.query(models.shops).filter((models.shops.deleted_at==None)&(models.shops.shop==shop)&(models.shops.installed==True)).all()
-    print(result)
-    if result:
-        return {"installed": True}
-
-    return {"installed": False}
-
-@router.post("/markAppAsInstalled")
-async def mark_app_as_installed(request: MarkAppInstalledRequest, db: Session = Depends(get_db)):
-
-    query_model =models.shops()
-    query_model.shop=request.shop
-    query_model.installed =True
-    query_model.deleted_at=None
-
-    db.add(query_model)
-    db.commit()
-
-    return {"message": "App marked as installed successfully"}
-
-@router.patch("/markAppAsUnInstalled")
-async def mark_app_as_uninstalled(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    shop = data.get("shop")
-    
-    if not shop:
-        raise HTTPException(status_code=400, detail="Shop parameter is required")
-
-    # Find the shop in the database
-    query_model = db.query(models.shops).filter(
-        models.shops.deleted_at == None,
-        models.shops.shop == shop,
-        models.shops.installed == True
+@router.post("/shops/", response_model=dict)
+def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
+    # Check if shop already exists by domain or email
+    existing_shop = db.query(Shop).filter(
+        (Shop.shopify_domain == shop.shopify_domain) | (Shop.email == shop.email)
     ).first()
-
-    if not query_model:
-        raise HTTPException(status_code=404, detail="Shop not found or already uninstalled")
-
-    # Mark as uninstalled
-    query_model.installed = False
-    query_model.deleted_at = datetime.now()
-    db.add(query_model)
+    if existing_shop:
+        return {"message": "Shop Already Created", "shop_id": existing_shop.shop_id}
+    
+    # Create a new Shop instance
+    new_shop = Shop(
+        shopify_domain=shop.shopify_domain,
+        shop_name=shop.shop_name,
+        shop_logo=shop.shop_logo,
+        email=shop.email,
+        message_template_id=shop.message_template_id,
+        created_at=datetime.utcnow(),
+        modified_at=datetime.utcnow(),
+    )
+    db.add(new_shop)
     db.commit()
-
-    return {"message": "App marked as uninstalled successfully"}
+    db.refresh(new_shop)
+    return {"message": "Shop created successfully", "shop_id": new_shop.shop_id}
