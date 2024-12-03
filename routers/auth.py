@@ -59,8 +59,8 @@ class OrderPayload(BaseModel):
     line_items: List[LineItem]
     order_date: str
 
-@router.get("/products/", response_model=List[dict])
-def get_products( db: Session = Depends(get_db)):
+@router.get("/products/{shop_id}", response_model=List[dict])
+def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
     Get all products or filter by `shop_id`.
 
@@ -73,13 +73,11 @@ def get_products( db: Session = Depends(get_db)):
     """
     try:
         # Query all products if no `shop_id` is provided
-        # if shop_id:
-        #     products = db.query(Products).filter(Products.shop_id == shop_id).all()
-        # else:
-        products = db.query(Products).all()
+        products = db.query(Products).filter(Products.shop_id == shop_id).all()
+        # products = db.query(Products).all()
         
-        # if not products:
-        #     raise HTTPException(status_code=404, detail="No products found.")
+        if not products:
+            raise HTTPException(status_code=404, detail="No products found.")
         
         # Convert products to dictionaries for response
         product_list = [
@@ -273,10 +271,10 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                 db.refresh(new_order_product)
 
             # Add reminder entry
-                print(type(product.reorder_days))  # Should be int or str (string representing int)
-                print(type(order_date))
+                # print(type(product.reorder_days))  # Should be int or str (string representing int)
+                # print(type(order_date))
                 reminder_date = order_date + timedelta(days=int(product.reorder_days))
-                print(type(reminder_date))
+                # print(type(reminder_date))
                 create_reminder_entry = Reminder(
                     customer_id=customer.shop_customer_id,
                     product_id=product.product_id,
