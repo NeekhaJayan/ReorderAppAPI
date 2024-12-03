@@ -35,10 +35,10 @@ class UpdateProduct(BaseModel):
 
 class ShopCreate(BaseModel):
     shopify_domain: str
-    shop_name: str = None
-    shop_logo: str = None  # Optional field
-    email: EmailStr =None # Ensures email is valid
-    message_template_id: int = None 
+    shop_name: Optional[str] = None
+    shop_logo: Optional[str] = None  # Optional field
+    email: Optional[EmailStr] = None # Ensures email is valid
+    message_template_id: Optional[int] = None
 
 class LineItem(BaseModel):
     product_id: int
@@ -152,9 +152,7 @@ def update_product(
 @router.post("/shops/", response_model=dict)
 def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     # Check if shop already exists by domain or email
-    existing_shop = db.query(Shop).filter(
-        (Shop.shopify_domain == shop.shopify_domain) | (Shop.email == shop.email)
-    ).first()
+    existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
     if existing_shop:
         return {"message": "Shop Already Created", "shop_id": existing_shop.shop_id}
     
