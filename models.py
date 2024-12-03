@@ -25,6 +25,8 @@ class ShopCustomer(Base):
     shopify_id = Column(String, index=True)  # Shopify ID is a string
     email = Column(String, index=True)  # Email should be a string
     mobile = Column(String, index=True)  # Mobile number as a string
+    shipping_mobile_no = Column(String, index=True)  # Mobile number as a string
+    billing_mobile_no = Column(String, index=True)  # Mobile number as a string
     first_name = Column(String, index=True)  # First name is a string
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -38,6 +40,7 @@ class OrderProduct(Base):
     order_id = Column(Integer, ForeignKey("orders.order_id"), index=True)  # Relates to orders
     email = Column(String, index=True)  # Email should be a string
     shopify_product_id = Column(Integer, index=True)  # Assuming it's an integer
+    shopify_varient_id = Column(Integer, index=True)
     quantity = Column(Integer, index=True)  # Quantity as integer
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
