@@ -46,7 +46,7 @@ class LineItem(BaseModel):
 
 class OrderPayload(BaseModel):
     shop:str
-    shopify_order_id: str
+    shopify_order_id: int
     customer_id: int
     customer_email: str
     customer_name: str
