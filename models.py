@@ -22,7 +22,7 @@ class ShopCustomer(Base):
     __tablename__ = "shop_customer"
 
     shop_customer_id = Column(Integer, primary_key=True, index=True)
-    shopify_id = Column(String, index=True)  # Shopify ID is a string
+    shopify_id = Column(Integer, index=True)  # Shopify ID is a string
     email = Column(String, index=True)  # Email should be a string
     mobile = Column(String, index=True)  # Mobile number as a string
     shipping_mobile_no = Column(String, index=True)  # Mobile number as a string
@@ -38,7 +38,6 @@ class OrderProduct(Base):
 
     order_product_id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.order_id"), index=True)  # Relates to orders
-    email = Column(String, index=True)  # Email should be a string
     shopify_product_id = Column(Integer, index=True)  # Assuming it's an integer
     shopify_varient_id = Column(Integer, index=True)
     quantity = Column(Integer, index=True)  # Quantity as integer
@@ -59,7 +58,7 @@ class Orders(Base):
     status = Column(String, index=True)  # Order status as a string
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    deleted_at = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
 
 
 class Products(Base):

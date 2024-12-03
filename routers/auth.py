@@ -1,12 +1,15 @@
 
-from datetime import datetime, timedelta
-from typing import Annotated, List
+from datetime import timedelta
+from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 import models
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+import pytz
+from dateutil import parser
 
 
 
@@ -39,7 +42,7 @@ class ShopCreate(BaseModel):
 
 class LineItem(BaseModel):
     product_id: int
-    varient_id:int
+    varient_id: Optional[int] = None
     quantity: int
     status:str
     price: str
@@ -50,9 +53,9 @@ class OrderPayload(BaseModel):
     customer_id: int
     customer_email: str
     customer_name: str
-    customer_phone: str
-    shipping_phone:str
-    billing_phone:str
+    customer_phone: Optional[str] = None
+    shipping_phone:Optional[str] = None
+    billing_phone:Optional[str] = None
     line_items: List[LineItem]
     order_date: str
 
@@ -224,59 +227,67 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
         shop = db.query(Shop).filter(Shop.shopify_domain == order.shop).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        
-        customer=ShopCustomer(
-            shopify_id=order.customer_id,
-            email=order.customer_email,
-            mobile=order.customer_phone,
-            first_name=order.customer_name,
-            billing_mobile_no=order.billing_phone,
-            shipping_mobile_no=order.shipping_phone
-        )
-        db.add(customer)
-        db.commit()
-        db.refresh(customer)
+        customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
+        if not customer:
+            new_customer=ShopCustomer(
+                shopify_id=order.customer_id,
+                email=order.customer_email,
+                mobile=order.customer_phone,
+                first_name=order.customer_name,
+                billing_mobile_no=order.billing_phone,
+                shipping_mobile_no=order.shipping_phone
+            )
+            db.add(new_customer)
+            db.commit()
+            db.refresh(new_customer)
         for line_item in order.line_items:
             # Check product in database
+            order_date = parser.parse(order.order_date)
+            if order_date.tzinfo is None:
+                timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
+                order_date = timezone.localize(order_date)
             product = db.query(Products).filter(Products.shopify_product_id == line_item.product_id).first()
-            if not product:
-                pass
-
+            if product:
+                
+            
             # Add the order
-            new_order = Orders(
-                shop_id=shop.shop_id,
-                shopify_order_id=order.order_id,
-                customer_id=customer.shop_customer_id,
-                order_date=datetime.strptime(order.order_date, "%Y-%m-%dT%H:%M:%S"),  # Ensure datetime conversion
-                total_amount=line_item.price,
-                status=line_item.status,  # Ensure 'status' exists in line_item
-            )
-            db.add(new_order)
-            db.commit()
-            db.refresh(new_order)
+                new_order = Orders(
+                    shop_id=shop.shop_id,
+                    shopify_order_id=order.shopify_order_id,
+                    customer_id=customer.shop_customer_id,
+                    order_date=order_date,  # Ensure datetime conversion
+                    total_amount=line_item.price,
+                    status=line_item.status,  # Ensure 'status' exists in line_item
+                )
+                db.add(new_order)
+                db.commit()
+                db.refresh(new_order)
 
             # Add the order product
-            new_order_product = OrderProduct(
-                order_id=new_order.order_id,
-                shopify_product_id=line_item.product_id,
-                quantity=line_item.quantity,
-                shopify_varient_id=line_item.varient_id,
-            )
-            db.add(new_order_product)
-            db.commit()
-            db.refresh(new_order_product)
+                new_order_product = OrderProduct(
+                    order_id=new_order.order_id,
+                    shopify_product_id=line_item.product_id,
+                    quantity=line_item.quantity,
+                    shopify_varient_id=line_item.varient_id,
+                )
+                db.add(new_order_product)
+                db.commit()
+                db.refresh(new_order_product)
 
             # Add reminder entry
-            reminder_date = new_order.order_date + timedelta(days=product.reorder_days)
-            create_reminder_entry = Reminder(
-                customer_id=customer.shop_customer_id,
-                product_id=product.product_id,
-                order_id=new_order.order_id,
-                reminder_date=reminder_date,
-            )
-            db.add(create_reminder_entry)
-            db.commit()
-            db.refresh(create_reminder_entry)
+                print(type(product.reorder_days))  # Should be int or str (string representing int)
+                print(type(order_date))
+                reminder_date = order_date + timedelta(days=int(product.reorder_days))
+                print(type(reminder_date))
+                create_reminder_entry = Reminder(
+                    customer_id=customer.shop_customer_id,
+                    product_id=product.product_id,
+                    order_id=new_order.order_id,
+                    reminder_date=reminder_date,
+                )
+                db.add(create_reminder_entry)
+                db.commit()
+                db.refresh(create_reminder_entry)
 
         
         # Add the new product to the database
