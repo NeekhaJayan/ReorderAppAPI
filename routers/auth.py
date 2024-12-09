@@ -110,8 +110,16 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         # Add the new product to the database
         db.add(new_product)
         db.commit()
-        db.refresh(new_product)  # Refresh to get the ID
-        return {"message": "Product created successfully", "product_id": new_product.product_id}
+        db.refresh(new_product) 
+        reorderDetails=[{
+                "product_id": new_product.product_id,
+                "shop_id": new_product.shop_id,
+                "shopify_product_id": new_product.shopify_product_id,
+                "title": new_product.title,
+                "reorder_days": new_product.reorder_days,
+                "created_at":new_product.created_at,
+        }] # Refresh to get the ID
+        return reorderDetails
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
