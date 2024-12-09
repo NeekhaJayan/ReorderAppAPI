@@ -31,7 +31,7 @@ class ProductCreate(BaseModel):
 
 class UpdateProduct(BaseModel):
     shopify_product_id: str
-    reorder_days: int
+    reorder_days: Optional[int] = None
 
 class ShopCreate(BaseModel):
     shopify_domain: str
@@ -139,9 +139,12 @@ def update_product(
     
     if product.shopify_product_id is not None:
         existing_product.shopify_product_id = product.shopify_product_id
-
-    if product.reorder_days is not None:
         existing_product.reorder_days = product.reorder_days
+
+        if product.reorder_days is  None:
+            existing_product.is_deleted = True
+
+        
 
     # Optionally update a modified timestamp (if your model supports it)
     # existing_product.modified_at = datetime.utcnow()
