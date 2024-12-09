@@ -73,7 +73,7 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
     try:
         # Query all products if no `shop_id` is provided
-        products = db.query(Products).filter(Products.shop_id == shop_id).all()
+        products = db.query(Products).filter((Products.shop_id == shop_id )&(Products.is_deleted == False)).all()
         # products = db.query(Products).all()
         
         if not products:
