@@ -13,6 +13,8 @@ class Shop(Base):
     shop_logo = Column(String, nullable=True)  # Logo path or URL as string
     email = Column(String, index=True)  # Email should be a string
     message_template_id = Column(Integer, nullable=True)  # Assuming template ID is an integer
+    buffer_time = Column(String, nullable=True)
+    coupon = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion
@@ -83,6 +85,19 @@ class Reminder(Base):
     order_id = Column(Integer, ForeignKey("orders.order_id"), index=True)  # Relates to order
     reminder_date = Column(DateTime, index=True)  # Date should be DateTime
     status = Column(String, index=True)  # Reminder status as string
+    created_at = Column(DateTime, default=datetime.utcnow)
+    modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_deleted = Column(Boolean, default=False)
+
+class Message_Template(Base):
+    __tablename__ ="message_template"
+
+    message_template_id = Column(Integer, primary_key=True, index=True)
+    message_template = Column(String, index=True)
+    message_channel = Column(Integer, index=True)
+    mail_server = Column(String, index=True)
+    fromname = Column(String, index=True)
+    subject = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)

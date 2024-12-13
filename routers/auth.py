@@ -3,10 +3,12 @@ from datetime import timedelta
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 import models
-from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder
+import requests
+from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
+from pydantic_settings import BaseSettings
 from datetime import datetime
 import pytz
 from dateutil import parser
@@ -22,6 +24,34 @@ router = APIRouter(
 models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
 
+class ShopifySettings(BaseSettings):
+    api_version: str = "2023-04"
+    shop_name: str  # Shopify shop name
+    access_token: str  # Shopify access token (optional if provided dynamically)
+
+    class Config:
+        env_file = ".env"
+
+def get_shopify_settings() -> ShopifySettings:
+    return ShopifySettings()
+
+class ShopifyService:
+    def __init__(self, settings: ShopifySettings):
+        self.settings = settings
+        self.base_url = f"https://{settings.shop_name}.myshopify.com/admin/api/{settings.api_version}"
+
+    def get_shop_domain(self):
+        url = f"{self.base_url}/shop.json"
+        headers = {"X-Shopify-Access-Token": self.settings.access_token}
+
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error fetching shop domain: {response.json().get('errors', 'Unknown error')}",
+            )
+        
+        return response.json()["shop"]["myshopify_domain"]
 
 class ProductCreate(BaseModel):
     shop_id: int
@@ -58,6 +88,37 @@ class OrderPayload(BaseModel):
     billing_phone:Optional[str] = None
     line_items: List[LineItem]
     order_date: str
+
+class GeneralSettings(BaseModel):
+    shop_name:str
+    tab: str
+    bannerImage: Optional[str]=None
+    bufferTime: Optional[int] = None
+    coupon: Optional[str] = None
+
+class EmailTemplateSettings(BaseModel):
+    shop_name:str
+    tab: str
+    reminderEmailsEnabled:bool
+    mail_server: str
+    subject: str
+    fromName: EmailStr
+    emailContent: str
+    
+
+from fastapi import FastAPI, Depends
+
+app = FastAPI()
+
+@router.get("/shop-domain")
+def get_shop_domain(shopify_settings: ShopifySettings = Depends(get_shopify_settings),db: Session = Depends(get_db)):
+    shopify_service = ShopifyService(shopify_settings)
+    shop_domain = shopify_service.get_shop_domain()
+    shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    return {"shop_id": shop.shop_id}
+
 
 @router.get("/products/{shop_id}", response_model=List[dict])
 def get_products(shop_id:int, db: Session = Depends(get_db)):
@@ -304,3 +365,38 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
 
     return {"message": "Order received successfully", "order": order}
+
+@router.post("/save-settings")
+async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTemplateSettings: Optional[EmailTemplateSettings] = None, db: Session = Depends(get_db)):
+    
+    if generalSettings:
+        shop = db.query(Shop).filter(Shop.shopify_domain == generalSettings.shop_name).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+        print(generalSettings)
+        if generalSettings.bufferTime:
+            shop.buffer_time=generalSettings.bufferTime
+        if generalSettings.coupon:
+            shop.coupon=generalSettings.coupon
+        if generalSettings.bannerImage:
+                shop.shop_logo=generalSettings.bannerImage
+        
+        db.commit()
+        db.refresh(shop)
+    if emailTemplateSettings:
+        shop = db.query(Shop).filter(Shop.shopify_domain == emailTemplateSettings.shop_name).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+        new_message_template = Message_Template(
+        message_template=emailTemplateSettings.emailContent,
+        message_channel = "email",
+        mail_server = emailTemplateSettings.mail_server,
+        fromname = emailTemplateSettings.fromName,
+        subject = emailTemplateSettings.subject,
+        created_at=datetime.utcnow(),
+        modified_at=datetime.utcnow(),
+         )
+        db.add(new_message_template)
+        db.commit()
+        db.refresh(new_message_template)
+    return {"message": "Settings successfully Added", }
