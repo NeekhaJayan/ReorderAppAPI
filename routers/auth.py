@@ -24,21 +24,21 @@ router = APIRouter(
 models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
 
-class ShopifySettings(BaseSettings):
-    api_version: str = "2023-04"
-    shop_name: str  # Shopify shop name
-    access_token: str  # Shopify access token (optional if provided dynamically)
+# class ShopifySettings(BaseSettings):
+#     api_version: str = "2023-04"
+#     shop_name: str  # Shopify shop name
+#     access_token: str  # Shopify access token (optional if provided dynamically)
 
-    class Config:
-        env_file = ".env"
+#     class Config:
+#         env_file = ".env"
 
-def get_shopify_settings() -> ShopifySettings:
-    return ShopifySettings()
+# def get_shopify_settings() -> ShopifySettings:
+#     return ShopifySettings()
 
-class ShopifyService:
-    def __init__(self, settings: ShopifySettings):
-        self.settings = settings
-        self.base_url = f"https://{settings.shop_name}.myshopify.com/admin/api/{settings.api_version}"
+# class ShopifyService:
+#     def __init__(self, settings: ShopifySettings):
+#         self.settings = settings
+#         self.base_url = f"https://{settings.shop_name}.myshopify.com/admin/api/{settings.api_version}"
 
     # def get_shop_domain(self):
     #     url = f"{self.base_url}/shop.json"
@@ -110,14 +110,14 @@ from fastapi import FastAPI, Depends
 
 app = FastAPI()
 
-@router.get("/shop-domain")
-def get_shop_domain(shopify_settings: ShopifySettings = Depends(get_shopify_settings),db: Session = Depends(get_db)):
-    shopify_service = ShopifyService(shopify_settings)
-    shop_domain = shopify_service.get_shop_domain()
-    shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    return {"shop_id": shop.shop_id}
+# @router.get("/shop-domain")
+# def get_shop_domain(shopify_settings: ShopifySettings = Depends(get_shopify_settings),db: Session = Depends(get_db)):
+#     shopify_service = ShopifyService(shopify_settings)
+#     shop_domain = shopify_service.get_shop_domain()
+#     shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+#     if not shop:
+#         raise HTTPException(status_code=404, detail="Shop not found")
+#     return {"shop_id": shop.shop_id}
 
 
 @router.get("/products/{shop_id}", response_model=List[dict])
