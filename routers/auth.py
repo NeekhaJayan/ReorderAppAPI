@@ -8,7 +8,7 @@ from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Messa
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
-from pydantic_settings import BaseSettings
+# from pydantic_settings import BaseSettings
 from datetime import datetime
 import pytz
 from dateutil import parser
