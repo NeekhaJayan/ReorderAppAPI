@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 import models
-import requests
+# import requests
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
 from sqlalchemy.orm import Session
 from database import engine ,get_db
@@ -40,18 +40,18 @@ class ShopifyService:
         self.settings = settings
         self.base_url = f"https://{settings.shop_name}.myshopify.com/admin/api/{settings.api_version}"
 
-    def get_shop_domain(self):
-        url = f"{self.base_url}/shop.json"
-        headers = {"X-Shopify-Access-Token": self.settings.access_token}
+    # def get_shop_domain(self):
+    #     url = f"{self.base_url}/shop.json"
+    #     headers = {"X-Shopify-Access-Token": self.settings.access_token}
 
-        response = requests.get(url, headers=headers)
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Error fetching shop domain: {response.json().get('errors', 'Unknown error')}",
-            )
+    #     response = requests.get(url, headers=headers)
+    #     if response.status_code != 200:
+    #         raise HTTPException(
+    #             status_code=response.status_code,
+    #             detail=f"Error fetching shop domain: {response.json().get('errors', 'Unknown error')}",
+    #         )
         
-        return response.json()["shop"]["myshopify_domain"]
+    #     return response.json()["shop"]["myshopify_domain"]
 
 class ProductCreate(BaseModel):
     shop_id: int
