@@ -94,16 +94,18 @@ class GeneralSettings(BaseModel):
     tab: str
     bannerImage: Optional[str]=None
     bufferTime: Optional[int] = None
-    coupon: Optional[str] = None
+    
 
 class EmailTemplateSettings(BaseModel):
     shop_name:str
     tab: str
     reminderEmailsEnabled:bool
     mail_server: str
+    port: int
     subject: str
     fromName: EmailStr
-    emailContent: str
+    coupon: Optional[str] = None
+    discountPercent: Optional[str] = None
     
 
 from fastapi import FastAPI, Depends
@@ -376,8 +378,7 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
         print(generalSettings)
         if generalSettings.bufferTime:
             shop.buffer_time=generalSettings.bufferTime
-        if generalSettings.coupon:
-            shop.coupon=generalSettings.coupon
+        
         if generalSettings.bannerImage:
                 shop.shop_logo=generalSettings.bannerImage
         
@@ -387,10 +388,21 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
         shop = db.query(Shop).filter(Shop.shopify_domain == emailTemplateSettings.shop_name).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
+        
+        if emailTemplateSettings.coupon:
+            shop.coupon=emailTemplateSettings.coupon
+
+        if emailTemplateSettings.discountPercent:
+            shop.discountpercent=emailTemplateSettings.discountPercent
+        db.commit()
+        db.refresh(shop)
+        
         new_message_template = Message_Template(
-        message_template=emailTemplateSettings.emailContent,
+        message_template=' ',
         message_channel = "email",
+        shop_name=emailTemplateSettings.shop_name,
         mail_server = emailTemplateSettings.mail_server,
+        port=int(emailTemplateSettings.port),
         fromname = emailTemplateSettings.fromName,
         subject = emailTemplateSettings.subject,
         created_at=datetime.utcnow(),

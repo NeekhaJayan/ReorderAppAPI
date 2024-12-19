@@ -15,6 +15,7 @@ class Shop(Base):
     message_template_id = Column(Integer, nullable=True)  # Assuming template ID is an integer
     buffer_time = Column(String, nullable=True)
     coupon = Column(String, nullable=True)
+    discountpercent= Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion
@@ -96,8 +97,10 @@ class Message_Template(Base):
     message_template = Column(String, index=True)
     message_channel = Column(Integer, index=True)
     mail_server = Column(String, index=True)
+    port=Column(Integer, index=True)
     fromname = Column(String, index=True)
     subject = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
+    shop_name=Column(String, index=True)
