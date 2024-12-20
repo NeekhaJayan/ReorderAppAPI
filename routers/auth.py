@@ -12,8 +12,9 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 import pytz
 from dateutil import parser
-
-
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+import os
 
 router = APIRouter(
     prefix="/auth",
@@ -23,7 +24,7 @@ router = APIRouter(
 
 models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
-
+API_KEY=os.getenv("SENDINBLUE_API_KEY")
 # class ShopifySettings(BaseSettings):
 #     api_version: str = "2023-04"
 #     shop_name: str  # Shopify shop name
@@ -106,7 +107,100 @@ class EmailTemplateSettings(BaseModel):
     fromName: EmailStr
     coupon: Optional[str] = None
     discountPercent: Optional[str] = None
-    
+
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reorder Reminder</title>
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9fafb;
+      color: #202223;
+    }}
+    .email-container {{
+      max-width: 600px;
+      margin: 40px auto;
+      background: #ffffff;
+      border: 1px solid #dbe1e6;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }}
+    .header {{
+      background-color: #007ace;
+      text-align: center;
+      padding: 20px;
+      color: white;
+    }}
+    .content {{
+      padding: 20px;
+    }}
+    .product-section {{
+      text-align: center;
+      margin: 20px 0;
+    }}
+    .cta {{
+      text-align: center;
+      margin: 20px 0;
+    }}
+    .cta a {{
+      text-decoration: none;
+      color: white;
+      background-color: #007ace;
+      padding: 10px 20px;
+      border-radius: 4px;
+    }}
+    .coupon {{
+      text-align: center;
+      margin: 10px 0;
+      font-size: 14px;
+      background-color: #eef4fb;
+      color: #007ace;
+      padding: 10px;
+      border-radius: 4px;
+    }}
+    .footer {{
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #8c9196;
+    }}
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>Your Shop</h1>
+    </div>
+    <div class="content">
+      <p>Hello {first_name},</p>
+      <p>Your <strong>{product_name}</strong> might be running low. Don't worry – you can reorder with just one click!</p>
+      <div class="product-section">
+        <img src="{product_image}" alt="{product_name}" />
+        <p><strong>Product Name:</strong> {product_name}</p>
+        <p><strong>Quantity Ordered:</strong> {quantity}</p>
+        <p><strong>Estimated Days Remaining:</strong> {remaining_days}</p>
+      </div>
+      <div class="cta">
+        <a href="{reorder_url}" target="_blank">Reorder Now and Save 10%</a>
+      </div>
+      <div class="coupon">
+        Use code <strong>RESTOCK10</strong> at checkout to save 10% on your reorder.
+      </div>
+    </div>
+    <div class="footer">
+      <p>Powered by ReOrder Reminder Pro</p>
+      <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
+    </div>
+  </div>
+</body>
+</html>
+"""
 
 from fastapi import FastAPI, Depends
 
@@ -370,7 +464,6 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
 
 @router.post("/save-settings")
 async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTemplateSettings: Optional[EmailTemplateSettings] = None, db: Session = Depends(get_db)):
-    
     if generalSettings:
         shop = db.query(Shop).filter(Shop.shopify_domain == generalSettings.shop_name).first()
         if not shop:
@@ -386,6 +479,15 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
         db.refresh(shop)
     if emailTemplateSettings:
         shop = db.query(Shop).filter(Shop.shopify_domain == emailTemplateSettings.shop_name).first()
+        placeholders = {
+                            "first_name": "John",
+                            "product_name": "Widget Pro",
+                            "product_image": "https://via.placeholder.com/150x150.png?text=Widget+Pro",
+                            "quantity": "2",
+                            "remaining_days": "5",
+                            "reorder_url": "https://yourshop.com/reorder/widget-pro",
+                        }
+        html_content = HTML_TEMPLATE.format(**placeholders)
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         
@@ -411,4 +513,52 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
         db.add(new_message_template)
         db.commit()
         db.refresh(new_message_template)
+
+        configuration = sib_api_v3_sdk.Configuration()
+        configuration.api_key['api-key'] =API_KEY 
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+    
+        email_data = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": shop.email}],
+            sender={"email": emailTemplateSettings.fromName},
+            subject=f"Test Mail: {emailTemplateSettings.subject}",
+            html_content=html_content
+        )
+        try:
+            api_instance.send_transac_email(email_data)
+            
+        except ApiException as e:
+            print(f"Error sending email: {e}")
     return {"message": "Settings successfully Added", }
+
+
+@router.get("/get-settings")
+async def get_settings(shop_name: str , db: Session = Depends(get_db)):
+    # Fetch the shop based on shop_name
+    shop = db.query(Shop).filter(Shop.shopify_domain == shop_name).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    
+    # General settings
+    general_settings = {
+        "bufferTime": shop.buffer_time
+    }
+
+    # Email template settings
+    email_template = db.query(Message_Template).filter(Message_Template.shop_name == shop_name).first()
+    if email_template:
+        email_template_settings = {
+            "coupon": shop.coupon,
+            "discountPercent": shop.discountpercent,
+            "mail_server": email_template.mail_server,
+            "port": email_template.port,
+            "fromName": email_template.fromname,
+            "subject": email_template.subject,
+            "message_channel": email_template.message_channel,
+        }
+    else:
+        email_template_settings = None
+
+    settings_data={ "email_template_settings":email_template_settings,"general_settings":general_settings}
+    print(settings_data)
+    return settings_data
