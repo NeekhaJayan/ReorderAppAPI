@@ -1,10 +1,11 @@
 
 from datetime import timedelta
 from typing import Annotated, List, Optional
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 import models
 # import requests
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
+from dependencies import get_s3_client,AWS_BUCKET
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
@@ -15,6 +16,7 @@ from dateutil import parser
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 import os
+from botocore.client import BaseClient
 
 router = APIRouter(
     prefix="/auth",
@@ -24,6 +26,7 @@ router = APIRouter(
 
 models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
+
 API_KEY=os.getenv("SENDINBLUE_API_KEY")
 # class ShopifySettings(BaseSettings):
 #     api_version: str = "2023-04"
@@ -93,20 +96,21 @@ class OrderPayload(BaseModel):
 class GeneralSettings(BaseModel):
     shop_name:str
     tab: str
-    bannerImage: Optional[str]=None
-    bufferTime: Optional[int] = None
+
+    
     
 
 class EmailTemplateSettings(BaseModel):
     shop_name:str
     tab: str
-    reminderEmailsEnabled:bool
+    # reminderEmailsEnabled:bool
     mail_server: str
     port: int
     subject: str
     fromName: EmailStr
     coupon: Optional[str] = None
     discountPercent: Optional[str] = None
+    bufferTime: Optional[int] = None
 
 
 HTML_TEMPLATE = """
@@ -463,21 +467,10 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
     return {"message": "Order received successfully", "order": order}
 
 @router.post("/save-settings")
-async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTemplateSettings: Optional[EmailTemplateSettings] = None, db: Session = Depends(get_db)):
-    if generalSettings:
-        shop = db.query(Shop).filter(Shop.shopify_domain == generalSettings.shop_name).first()
-        if not shop:
-            raise HTTPException(status_code=404, detail="Shop not found")
-        print(generalSettings)
-        if generalSettings.bufferTime:
-            shop.buffer_time=generalSettings.bufferTime
-        
-        if generalSettings.bannerImage:
-                shop.shop_logo=generalSettings.bannerImage
-        
-        db.commit()
-        db.refresh(shop)
+async def save_settings(emailTemplateSettings: Optional[EmailTemplateSettings] = None, db: Session = Depends(get_db)):
+    
     if emailTemplateSettings:
+        print(emailTemplateSettings)
         shop = db.query(Shop).filter(Shop.shopify_domain == emailTemplateSettings.shop_name).first()
         placeholders = {
                             "first_name": "John",
@@ -490,7 +483,8 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
         html_content = HTML_TEMPLATE.format(**placeholders)
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        
+        if emailTemplateSettings.bufferTime:
+            shop.buffer_time=emailTemplateSettings.bufferTime
         if emailTemplateSettings.coupon:
             shop.coupon=emailTemplateSettings.coupon
 
@@ -533,15 +527,22 @@ async def save_settings(generalSettings:Optional[GeneralSettings] = None,emailTe
 
 
 @router.get("/get-settings")
-async def get_settings(shop_name: str , db: Session = Depends(get_db)):
+async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseClient = Depends(get_s3_client)):
     # Fetch the shop based on shop_name
     shop = db.query(Shop).filter(Shop.shopify_domain == shop_name).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     
+    s3_path = f"{shop.shop_id}/{shop.shop_logo}"
+    client_action='get_object'
+    # url = s3.generate_presigned_url(
+    #      client_action, Params={"Bucket": AWS_BUCKET, "Key": s3_path}, ExpiresIn = 3600
+    # )
+    url = f"https://{AWS_BUCKET}.s3.amazonaws.com/{s3_path}"
+
     # General settings
     general_settings = {
-        "bufferTime": shop.buffer_time
+        "bufferImage":url
     }
 
     # Email template settings
@@ -549,6 +550,7 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db)):
     if email_template:
         email_template_settings = {
             "coupon": shop.coupon,
+            "bufferTime": shop.buffer_time,
             "discountPercent": shop.discountpercent,
             "mail_server": email_template.mail_server,
             "port": email_template.port,
@@ -562,3 +564,22 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db)):
     settings_data={ "email_template_settings":email_template_settings,"general_settings":general_settings}
     print(settings_data)
     return settings_data
+
+@router.post("/upload_to_aws/{shop_name}")
+async def upload_file_to_server(shop_name:str,db:db_dependency,s3: BaseClient = Depends(get_s3_client),bannerImage: UploadFile = File(...)):
+    try:
+        shop = db.query(Shop).filter(Shop.shopify_domain ==shop_name).first()
+        if not bannerImage:
+            raise HTTPException(status_code=400, detail="No file provided")
+        folder_name = f"{shop.shop_id}/{bannerImage.filename}"
+        s3.upload_fileobj(bannerImage.file, AWS_BUCKET, folder_name)
+        
+        shop.shop_logo=bannerImage.filename
+        db.commit()
+        db.refresh(shop)
+        return {bannerImage.filename}
+    except HTTPException as e:
+        raise HTTPException(status_code=400, detail='File Type not Supported')   
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail='Something went wrong')
