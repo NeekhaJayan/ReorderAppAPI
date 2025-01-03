@@ -220,7 +220,7 @@ app = FastAPI()
 #     return {"shop_id": shop.shop_id}
 
 
-@router.get("/products/{shop_id}", response_model=List[dict])
+@router.get("/products/{shop_id}")
 def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
     Get all products or filter by `shop_id`.
@@ -258,7 +258,7 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching products: {e}")
 
     
-@router.post("/products/", response_model=dict)
+@router.post("/products")
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     # Create a new product instance
     new_product = Products(
@@ -285,7 +285,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
 
-@router.patch("/products/{product_id}", response_model=dict)
+@router.patch("/products/{product_id}")
 def update_product(
     product_id: int,
     product: UpdateProduct,
@@ -319,7 +319,7 @@ def update_product(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating product: {e}")
 
-@router.post("/shops/", response_model=dict)
+@router.post("/shops")
 def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     # Check if shop already exists by domain or email
     existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
@@ -341,7 +341,7 @@ def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     db.refresh(new_shop)
     return {"message": "Shop created successfully", "shop_id": new_shop.shop_id}
 
-@router.get("/shops/{shop_domain}", response_model=dict)
+@router.get("/shops/{shop_domain}")
 def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     # Query the database for the shop by shop_id
     shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
@@ -353,7 +353,7 @@ def get_shop(shop_domain: str, db: Session = Depends(get_db)):
         "shop_id": shop.shop_id,
     }
 
-@router.patch("/shops/{shop_id}", response_model=dict)
+@router.patch("/shops/{shop_id}")
 def update_shop(
     shop_id: int,
     shop: ShopCreate,
