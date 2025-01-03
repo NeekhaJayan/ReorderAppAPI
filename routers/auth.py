@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Quer
 import models
 # import requests
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
-from dependencies import get_s3_client,AWS_BUCKET
+from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
@@ -105,7 +105,7 @@ class EmailTemplateSettings(BaseModel):
     tab: str
     # reminderEmailsEnabled:bool
     mail_server: str
-    port: int
+    port: str
     subject: str
     fromName: EmailStr
     coupon: Optional[str] = None
@@ -467,7 +467,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
     return {"message": "Order received successfully", "order": order}
 
 @router.post("/save-settings")
-async def save_settings(emailTemplateSettings: Optional[EmailTemplateSettings] = None, db: Session = Depends(get_db)):
+async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Session = Depends(get_db)):
     
     if emailTemplateSettings:
         print(emailTemplateSettings)
@@ -523,7 +523,7 @@ async def save_settings(emailTemplateSettings: Optional[EmailTemplateSettings] =
             
         except ApiException as e:
             print(f"Error sending email: {e}")
-    return {"message": "Settings successfully Added", }
+    return {"Your email template has been saved successfully! All future reminders will use this updated template to engage your customers." }
 
 
 @router.get("/get-settings")
@@ -538,11 +538,13 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
     # url = s3.generate_presigned_url(
     #      client_action, Params={"Bucket": AWS_BUCKET, "Key": s3_path}, ExpiresIn = 3600
     # )
-    url = f"https://{AWS_BUCKET}.s3.amazonaws.com/{s3_path}"
+    url = f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{s3_path}"
+    
 
     # General settings
     general_settings = {
-        "bufferImage":url
+        "bannerImage":url,
+        "bannerImageName":shop.shop_logo
     }
 
     # Email template settings
@@ -562,7 +564,7 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
         email_template_settings = None
 
     settings_data={ "email_template_settings":email_template_settings,"general_settings":general_settings}
-    print(settings_data)
+    # print(settings_data)
     return settings_data
 
 @router.post("/upload_to_aws/{shop_name}")
