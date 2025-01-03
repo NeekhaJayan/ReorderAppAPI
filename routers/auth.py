@@ -238,7 +238,7 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
         # products = db.query(Products).all()
         
         if not products:
-            raise HTTPException(status_code=404, detail="No products found.")
+            product_list=[]
         
         # Convert products to dictionaries for response
         product_list = [
