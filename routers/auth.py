@@ -410,10 +410,10 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             db.refresh(new_customer)
         for line_item in order.line_items:
             # Check product in database
-            order_date = parser.parse(order.order_date)
-            if order_date.tzinfo is None:
-                timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
-                order_date = timezone.localize(order_date)
+            order_date = order.order_date
+            # if order_date.tzinfo is None:
+            #     timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
+            #     order_date = timezone.localize(order_date)
             product = db.query(Products).filter(Products.shopify_product_id == line_item.product_id).first()
             if product:
                 
