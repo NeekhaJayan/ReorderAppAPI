@@ -445,8 +445,9 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             # Add reminder entry
                 # print(type(product.reorder_days))  # Should be int or str (string representing int)
                 # print(type(order_date))
-                reminder_date = order_date + timedelta(days=int(product.reorder_days))
-                # print(type(reminder_date))
+                # Order Date + (Ordered Quantity x Estimated Usage Days of the Product) + Buffer Time
+                reminder_date = order_date + (line_item.quantity * timedelta(days=int(product.reorder_days))) + shop.buffer_time
+                print(type(reminder_date))
                 create_reminder_entry = Reminder(
                     customer_id=customer.shop_customer_id,
                     product_id=product.product_id,
