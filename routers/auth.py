@@ -260,27 +260,44 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
     
 @router.post("/products")
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    # Create a new product instance
-    new_product = Products(
-        shop_id=product.shop_id,
-        shopify_product_id=product.shopify_product_id,
-        title=product.title,
-        reorder_days=product.reorder_days,
-    )
     try:
-        # Add the new product to the database
-        db.add(new_product)
-        db.commit()
-        db.refresh(new_product) 
-        reorderDetails=[{
-                "product_id": new_product.product_id,
-                "shop_id": new_product.shop_id,
-                "shopify_product_id": new_product.shopify_product_id,
-                "title": new_product.title,
-                "reorder_days": new_product.reorder_days,
-                "created_at":new_product.created_at,
-        }] # Refresh to get the ID
-        return reorderDetails
+        existingproduct=db.query(Products).filter(Products.shopify_product_id==product.shopify_product_id).first()
+        if existingproduct:
+            existingproduct.reorder_days=product.reorder_days
+            existingproduct.is_deleted = False
+
+            db.commit()
+            db.refresh(existingproduct) 
+            reorderDetails=[{
+                    "product_id": existingproduct.product_id,
+                    "shop_id": existingproduct.shop_id,
+                    "shopify_product_id": existingproduct.shopify_product_id,
+                    "title": existingproduct.title,
+                    "reorder_days": existingproduct.reorder_days,
+                    "created_at":existingproduct.created_at,
+            }] # Refresh to get the ID
+            return reorderDetails
+        
+        # Create a new product instance
+        else:
+            new_product = Products(
+                shop_id=product.shop_id,
+                shopify_product_id=product.shopify_product_id,
+                title=product.title,
+                reorder_days=product.reorder_days,
+            )
+            db.add(new_product)
+            db.commit()
+            db.refresh(new_product) 
+            reorderDetails=[{
+                    "product_id": new_product.product_id,
+                    "shop_id": new_product.shop_id,
+                    "shopify_product_id": new_product.shopify_product_id,
+                    "title": new_product.title,
+                    "reorder_days": new_product.reorder_days,
+                    "created_at":new_product.created_at,
+            }] # Refresh to get the ID
+            return reorderDetails
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
@@ -410,11 +427,13 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             db.refresh(new_customer)
         for line_item in order.line_items:
             # Check product in database
-            order_date = order.order_date
+            print(type(order.order_date))
+            order_date = datetime.strptime(order.order_date, "%Y-%m-%dT%H:%M:%S%z")
+            print(type(order_date))
             # if order_date.tzinfo is None:
             #     timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
             #     order_date = timezone.localize(order_date)
-            product = db.query(Products).filter(Products.shopify_product_id == line_item.product_id).first()
+            product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.is_deleted == False)).first()
             if product:
                 
             
@@ -446,13 +465,19 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                 # print(type(product.reorder_days))  # Should be int or str (string representing int)
                 # print(type(order_date))
                 # Order Date + (Ordered Quantity x Estimated Usage Days of the Product) + Buffer Time
-                reminder_date = order_date + (line_item.quantity * timedelta(days=int(product.reorder_days))) + shop.buffer_time
+                
+                print(type(line_item.quantity))
+                print(type(timedelta(days=int(product.reorder_days))))
+                print(type(shop.buffer_time))
+                reminder_date = order_date + (line_item.quantity * timedelta(days=int(product.reorder_days))) - timedelta(shop.buffer_time)
                 print(type(reminder_date))
                 create_reminder_entry = Reminder(
                     customer_id=customer.shop_customer_id,
                     product_id=product.product_id,
                     order_id=new_order.order_id,
                     reminder_date=reminder_date,
+                    shop_id=order.shop
+                    
                 )
                 db.add(create_reminder_entry)
                 db.commit()

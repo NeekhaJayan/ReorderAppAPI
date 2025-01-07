@@ -38,7 +38,7 @@ def send_reminders():
         print(today)
         reminders = (
             db.query(Reminder)
-            .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False)
+            .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False,Reminder.status!='Send')
             .all()
         )
         print(reminders)
@@ -59,7 +59,7 @@ def send_reminders():
 
                 shop = (
                     db.query(Shop)
-                    .filter(Shop.shop_id == reminder.shop_id, Shop.is_deleted == False)
+                    .filter(Shop.shopify_domain == reminder.shop_id, Shop.is_deleted == False)
                     .first()
                 )
 
@@ -85,6 +85,9 @@ def send_reminders():
                     body=message_template.message_template,
                     sender_email=message_template.fromname,
                 )
+
+                reminder.status='Send'
+                db.commit()
 
             except Exception as e:
                 print(f"Error processing reminder {reminder.reminder_id}: {e}")
