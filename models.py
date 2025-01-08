@@ -85,8 +85,10 @@ class Reminder(Base):
     product_id = Column(Integer, ForeignKey("products.product_id"), index=True)  # Relates to product
     order_id = Column(Integer, ForeignKey("orders.order_id"), index=True)  # Relates to order
     reminder_date = Column(DateTime, index=True)  # Date should be DateTime
-    status = Column(String, index=True)  # Reminder status as string
+    status = Column(String, index=True,default='Pending')  # Reminder status as string
     shop_id=Column(String,index=True)
+    product_title=Column(String,index=True)
+    product_quantity=Column(Integer, index=True) 
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
