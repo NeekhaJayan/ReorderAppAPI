@@ -93,6 +93,10 @@ class OrderPayload(BaseModel):
     line_items: List[LineItem]
     order_date: str
 
+class DeletePayload(BaseModel):
+    shop:str
+    product_id:int
+
 class GeneralSettings(BaseModel):
     shop_name:str
     tab: str
@@ -611,3 +615,25 @@ async def upload_file_to_server(shop_name:str,db:db_dependency,s3: BaseClient = 
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail='Something went wrong')
+
+
+@router.delete("/webhook/product_delete")
+async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
+    try:
+    # Process the order payload
+        print(f"Received order: {payload.product_id}")
+        shop = db.query(Shop).filter(Shop.shopify_domain == payload.shop).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+        product = db.query(Products).filter((Products.shopify_product_id == payload.product_id)).first()
+        if product:
+            db.delete(product)
+            db.commit()
+            return {"message": "Deleted Successfully", "payload": payload}
+        else:
+            return {"message": "No Product Found", "payload": payload}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
+
+    
