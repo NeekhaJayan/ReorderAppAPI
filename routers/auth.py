@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Quer
 import models
 # import requests
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
-from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME
+from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME,send_email
 from sqlalchemy.orm import Session
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
@@ -626,7 +626,68 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         product = db.query(Products).filter((Products.shopify_product_id == payload.product_id)).first()
+        reminder=db.query(Reminder).filter((Reminder.product_id==payload.product_id)).first()
         if product:
+            if reminder:
+                db.delete(reminder)
+                email_template=f'''<!DOCTYPE html>
+                                    <html lang="en">
+                                    <head>
+                                        <meta charset="UTF-8">
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                        <title>Product Deletion Notification</title>
+                                        <style>
+                                            body {{
+                                                font-family: Arial, sans-serif;
+                                                line-height: 1.6;
+                                                color: #333;
+                                                margin: 20px;
+                                            }}
+                                            .container {{
+                                                max-width: 600px;
+                                                margin: auto;
+                                                padding: 20px;
+                                                border: 1px solid #ddd;
+                                                border-radius: 8px;
+                                                background-color: #f9f9f9;
+                                            }}
+                                            h1 {{
+                                                font-size: 20px;
+                                                color: #444;
+                                            }}
+                                            p {{
+                                                margin: 10px 0;
+                                            }}
+                                            .footer {{
+                                                margin-top: 20px;
+                                                font-size: 14px;
+                                                color: #666;
+                                            }}
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <div class="container">
+                                            <h1>Notification: Product Deletion and Impact on Reorder Emails</h1>
+                                            <p>Dear <strong>{shop.shop_name}</strong>,</p>
+                                            <p>We hope this email finds you well.</p>
+                                            <p>This is to inform you that the product <strong>{reminder.product_title}</strong> has been deleted from your Shopify store. As a result, our <strong>{shop.shop_name}</strong> will no longer be able to send reorder reminder emails to customers for this product.</p>
+                                            <p>We want to ensure that you are aware of this change, as it may impact your customer engagement and sales for this product. If this deletion was unintentional, we recommend restoring the product to maintain seamless communication with your customers.</p>
+                                            <p>If you have any questions or need assistance, please don’t hesitate to reach out to us. We’re here to help.</p>
+                                            <p>Thank you for using <strong>{shop.shop_name}</strong>!</p>
+                                            <div class="footer">
+                                              <p>Powered by ReOrder Reminder Pro</p>
+                                              <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
+                                            </div>
+                                        </div>
+                                    </body>
+                                    </html>
+                                    '''
+                send_email(
+                to=shop.email,
+                subject='Notification: Product Deletion and Impact on Reorder Emails',
+                body=email_template,
+                sender_email='ReorderPro',
+                )
             db.delete(product)
             db.commit()
             return {"message": "Deleted Successfully", "payload": payload}
@@ -634,6 +695,6 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
             return {"message": "No Product Found", "payload": payload}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
 
-    
+   
