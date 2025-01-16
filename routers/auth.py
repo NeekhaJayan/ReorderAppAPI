@@ -417,6 +417,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
+        print(customer)
         if not customer:
             new_customer=ShopCustomer(
                 shopify_id=order.customer_id,
@@ -429,6 +430,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             db.add(new_customer)
             db.commit()
             db.refresh(new_customer)
+            customer = new_customer
         for line_item in order.line_items:
             # Check product in database
             print(type(order.order_date))
