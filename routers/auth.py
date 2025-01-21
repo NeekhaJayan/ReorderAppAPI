@@ -7,6 +7,7 @@ import models
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
 from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME,send_email
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
 # from pydantic_settings import BaseSettings
@@ -225,7 +226,7 @@ app = FastAPI()
 
 
 @router.get("/products/{shop_id}")
-def get_products(shop_id:int, db: Session = Depends(get_db)):
+async def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
     Get all products or filter by `shop_id`.
 
@@ -238,7 +239,7 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
     try:
         # Query all products if no `shop_id` is provided
-        products = db.query(Products).filter((Products.shop_id == shop_id )&(Products.is_deleted == False)).all()
+        products = db.query(Products).filter((Products.shop_id == shop_id )&(Products.is_deleted == False)).order_by(desc(Products.created_at)).all()
         # products = db.query(Products).all()
         
         if not products:
@@ -263,7 +264,7 @@ def get_products(shop_id:int, db: Session = Depends(get_db)):
 
     
 @router.post("/products")
-def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     try:
         existingproduct=db.query(Products).filter(Products.shopify_product_id==product.shopify_product_id).first()
         if existingproduct:
@@ -307,7 +308,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
 
 @router.patch("/products/{product_id}")
-def update_product(
+async def update_product(
     product_id: int,
     product: UpdateProduct,
     db: Session = Depends(get_db)
@@ -341,7 +342,7 @@ def update_product(
         raise HTTPException(status_code=500, detail=f"Error updating product: {e}")
 
 @router.post("/shops")
-def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
+async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     # Check if shop already exists by domain or email
     existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
     if existing_shop:
@@ -363,7 +364,7 @@ def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     return {"message": "Shop created successfully", "shop_id": new_shop.shop_id}
 
 @router.get("/shops/{shop_domain}")
-def get_shop(shop_domain: str, db: Session = Depends(get_db)):
+async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     # Query the database for the shop by shop_id
     shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
     if not shop:
@@ -375,7 +376,7 @@ def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     }
 
 @router.patch("/shops/{shop_id}")
-def update_shop(
+async def update_shop(
     shop_id: int,
     shop: ShopCreate,
     db: Session = Depends(get_db)
@@ -406,6 +407,21 @@ def update_shop(
     db.refresh(existing_shop)
 
     return {"message": "Shop updated successfully", "shop_id": existing_shop.shop_id}
+
+
+@router.delete("/webhook/uninstallApp")
+async def receive_order(shop_domain: str, db: Session = Depends(get_db)):
+    try:
+        shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")  
+        else:
+            db.delete(shop)
+            db.commit()
+            return {"message": "Deleted Successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
 
 
 @router.post("/webhook/orderfullfilled")
