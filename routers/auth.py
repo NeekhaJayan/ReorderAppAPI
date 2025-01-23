@@ -514,6 +514,96 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
 
     return {"message": "Order received successfully", "order": order}
 
+@router.post("/orderSync")
+async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db)):
+    try:
+    # Process the order payload
+        print(f"Received order: {pastOrders}")
+        for order in pastOrders:
+            shop = db.query(Shop).filter(Shop.shopify_domain == order.shop).first()
+            if not shop:
+                raise HTTPException(status_code=404, detail="Shop not found")
+            customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
+            print(customer)
+            if not customer:
+                new_customer=ShopCustomer(
+                    shopify_id=order.customer_id,
+                    email=order.customer_email,
+                    mobile=order.customer_phone,
+                    first_name=order.customer_name,
+                    billing_mobile_no=order.billing_phone,
+                    shipping_mobile_no=order.shipping_phone
+                )
+                db.add(new_customer)
+                db.commit()
+                db.refresh(new_customer)
+                customer = new_customer
+            for line_item in order.line_items:
+                # Check product in database
+                print(type(order.order_date))
+                order_date = datetime.strptime(order.order_date, "%Y-%m-%dT%H:%M:%S%z")
+                print(type(order_date))
+                # if order_date.tzinfo is None:
+                #     timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
+                #     order_date = timezone.localize(order_date)
+                product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.is_deleted == False)).first()
+                if product:
+                    
+                
+                # Add the order
+                    new_order = Orders(
+                        shop_id=shop.shop_id,
+                        shopify_order_id=order.shopify_order_id,
+                        customer_id=customer.shop_customer_id,
+                        order_date=order_date,  # Ensure datetime conversion
+                        total_amount=line_item.price,
+                        status=line_item.status,  # Ensure 'status' exists in line_item
+                    )
+                    db.add(new_order)
+                    db.commit()
+                    db.refresh(new_order)
+
+                # Add the order product
+                    new_order_product = OrderProduct(
+                        order_id=new_order.order_id,
+                        shopify_product_id=line_item.product_id,
+                        quantity=line_item.quantity,
+                        shopify_varient_id=line_item.varient_id,
+                    )
+                    db.add(new_order_product)
+                    db.commit()
+                    db.refresh(new_order_product)
+
+                # Add reminder entry
+                    # print(type(product.reorder_days))  # Should be int or str (string representing int)
+                    # print(type(order_date))
+                    # Order Date + (Ordered Quantity x Estimated Usage Days of the Product) + Buffer Time
+                    
+                    print(type(line_item.quantity))
+                    print(type(timedelta(days=int(product.reorder_days))))
+                    print(type(shop.buffer_time))
+                    reminder_date = order_date + (line_item.quantity * timedelta(days=int(product.reorder_days))) - timedelta(shop.buffer_time)
+                    print(type(reminder_date))
+                    create_reminder_entry = Reminder(
+                        customer_id=customer.shop_customer_id,
+                        product_id=product.product_id,
+                        order_id=new_order.order_id,
+                        reminder_date=reminder_date,
+                        shop_id=order.shop
+                        
+                    )
+                    db.add(create_reminder_entry)
+                    db.commit()
+                    db.refresh(create_reminder_entry)
+
+            
+            
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
+
+    return {"message": "Order synced Successfully"}    
+
 @router.post("/save-settings")
 async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Session = Depends(get_db)):
     
