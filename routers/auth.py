@@ -273,7 +273,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
         try:
             # Check for existing product
             existingproduct = (db.query(Products).filter((Products.shopify_product_id == product.shopify_product_id) &(Products.shopify_variant_id == product.shopify_variant_id)).first())
-
+            
             # Common fields
     
             print(product)
@@ -281,6 +281,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
             if existingproduct:
                 # Update existing product details
                 existingproduct.reorder_days = product.reorder_days
+                existingproduct.created_at=datetime.utcnow()
                 existingproduct.is_deleted = False
 
                 db.commit()
