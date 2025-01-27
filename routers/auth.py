@@ -61,6 +61,7 @@ API_KEY=os.getenv("SENDINBLUE_API_KEY")
 class ProductCreate(BaseModel):
     shop_id: int
     shopify_product_id: str
+    shopify_variant_id: str
     title: str
     reorder_days: int
 
@@ -251,6 +252,7 @@ async def get_products(shop_id:int, db: Session = Depends(get_db)):
                 "product_id": product.product_id,
                 "shop_id": product.shop_id,
                 "shopify_product_id": product.shopify_product_id,
+                "shopify_variant_id":product.shopify_variant_id,
                 "title": product.title,
                 "reorder_days": product.reorder_days,
                 "created_at":product.created_at,
@@ -264,48 +266,64 @@ async def get_products(shop_id:int, db: Session = Depends(get_db)):
 
     
 @router.post("/products")
-async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    try:
-        existingproduct=db.query(Products).filter(Products.shopify_product_id==product.shopify_product_id).first()
-        if existingproduct:
-            existingproduct.reorder_days=product.reorder_days
-            existingproduct.is_deleted = False
+async def create_product(products: List[ProductCreate], db: Session = Depends(get_db)):
+    reorder_details = []
 
-            db.commit()
-            db.refresh(existingproduct) 
-            reorderDetails=[{
+    for product in products:
+        try:
+            # Check for existing product
+            existingproduct = (db.query(Products).filter((Products.shopify_product_id == product.shopify_product_id) &(Products.shopify_variant_id == product.shopify_variant_id)).first())
+
+            # Common fields
+    
+            print(product)
+
+            if existingproduct:
+                # Update existing product details
+                existingproduct.reorder_days = product.reorder_days
+                existingproduct.is_deleted = False
+
+                db.commit()
+                db.refresh(existingproduct)
+
+                reorder_details.append({
                     "product_id": existingproduct.product_id,
                     "shop_id": existingproduct.shop_id,
                     "shopify_product_id": existingproduct.shopify_product_id,
+                    "shopify_variant_id": existingproduct.shopify_variant_id,
                     "title": existingproduct.title,
                     "reorder_days": existingproduct.reorder_days,
-                    "created_at":existingproduct.created_at,
-            }] # Refresh to get the ID
-            return reorderDetails
-        
-        # Create a new product instance
-        else:
-            new_product = Products(
-                shop_id=product.shop_id,
-                shopify_product_id=product.shopify_product_id,
-                title=product.title,
-                reorder_days=product.reorder_days,
-            )
-            db.add(new_product)
-            db.commit()
-            db.refresh(new_product) 
-            reorderDetails=[{
+                    "created_at": existingproduct.created_at,
+                })
+            else:
+                # Create new product
+                new_product = Products(
+                    shop_id=product.shop_id,
+                    shopify_product_id=product.shopify_product_id,
+                    shopify_variant_id=product.shopify_variant_id,
+                    title=product.title,
+                    reorder_days=product.reorder_days,
+                )
+                db.add(new_product)
+                db.commit()
+                db.refresh(new_product)
+
+                reorder_details.append({
                     "product_id": new_product.product_id,
                     "shop_id": new_product.shop_id,
                     "shopify_product_id": new_product.shopify_product_id,
+                    "shopify_variant_id": new_product.shopify_variant_id,
                     "title": new_product.title,
                     "reorder_days": new_product.reorder_days,
-                    "created_at":new_product.created_at,
-            }] # Refresh to get the ID
-            return reorderDetails
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
+                    "created_at": new_product.created_at,
+                })
+                
+
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
+    print(reorder_details)
+    return reorder_details
 
 @router.patch("/products/{product_id}")
 async def update_product(
@@ -441,7 +459,8 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                 mobile=order.customer_phone,
                 first_name=order.customer_name,
                 billing_mobile_no=order.billing_phone,
-                shipping_mobile_no=order.shipping_phone
+                shipping_mobile_no=order.shipping_phone,
+                shop_id=shop.shop_id
             )
             db.add(new_customer)
             db.commit()
@@ -532,7 +551,9 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                     mobile=order.customer_phone,
                     first_name=order.customer_name,
                     billing_mobile_no=order.billing_phone,
-                    shipping_mobile_no=order.shipping_phone
+                    shipping_mobile_no=order.shipping_phone,
+                    shop_id=shop.shop_id
+
                 )
                 db.add(new_customer)
                 db.commit()

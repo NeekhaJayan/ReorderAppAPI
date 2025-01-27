@@ -20,11 +20,15 @@ class Shop(Base):
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion
 
+    customers = relationship("ShopCustomer", back_populates="shop", cascade="all, delete-orphan")
+    orders = relationship("Orders", back_populates="shop", cascade="all, delete-orphan")
+    products = relationship("Products", back_populates="shop", cascade="all, delete-orphan")
 
 class ShopCustomer(Base):
     __tablename__ = "shop_customer"
 
     shop_customer_id = Column(Integer, primary_key=True, index=True)
+    shop_id = Column(Integer, ForeignKey("shop.shop_id"))
     shopify_id = Column(Integer, index=True)  # Shopify ID is a string
     email = Column(String, index=True)  # Email should be a string
     mobile = Column(String, index=True)  # Mobile number as a string
@@ -34,6 +38,9 @@ class ShopCustomer(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean for deletion
+
+    shop = relationship("Shop", back_populates="customers")
+    reminders = relationship("Reminder", back_populates="customer", cascade="all, delete-orphan")
 
 
 class OrderProduct(Base):
@@ -47,6 +54,8 @@ class OrderProduct(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
+
+    
 
 
 class Orders(Base):
@@ -63,6 +72,9 @@ class Orders(Base):
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
 
+    shop = relationship("Shop", back_populates="orders")
+    customer = relationship("ShopCustomer")
+    order_products = relationship("OrderProduct", cascade="all, delete-orphan")
 
 class Products(Base):
     __tablename__ = "products"
@@ -70,11 +82,15 @@ class Products(Base):
     product_id = Column(Integer, primary_key=True, index=True)
     shop_id = Column(Integer, ForeignKey("shop.shop_id"), index=True)  # Relates to shop
     shopify_product_id = Column(String, index=True)  # Shopify product ID is a string
+    shopify_variant_id = Column(String, index=True) 
     title = Column(String, index=True)  # Product title as a string
     reorder_days = Column(Integer, index=True)  # Reorder days as integer
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
+
+    shop = relationship("Shop", back_populates="products")
+    reminders = relationship("Reminder", back_populates="product", cascade="all, delete-orphan")
 
 
 class Reminder(Base):
@@ -92,6 +108,9 @@ class Reminder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
+
+    customer = relationship("ShopCustomer", back_populates="reminders")
+    product = relationship("Products", back_populates="reminders")
 
 class Message_Template(Base):
     __tablename__ ="message_template"
