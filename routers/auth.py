@@ -609,11 +609,11 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                     create_reminder_entry = Reminder(
                         customer_id=customer.shop_customer_id,
                         product_id=product.product_id,
-                        product_title=product.title,
-                        product_quantity=line_item.quantity,
                         order_id=new_order.order_id,
                         reminder_date=reminder_date,
-                        shop_id=order.shop
+                        shop_id=order.shop,
+                        product_title=product.title,
+                        product_quantity=line_item.quantity
                         
                     )
                     db.add(create_reminder_entry)
