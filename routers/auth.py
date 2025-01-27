@@ -78,7 +78,7 @@ class ShopCreate(BaseModel):
 
 class LineItem(BaseModel):
     product_id: int
-    varient_id: Optional[int] = None
+    variant_id: Optional[int] = None
     quantity: int
     status:str
     price: str
@@ -497,7 +497,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                     order_id=new_order.order_id,
                     shopify_product_id=line_item.product_id,
                     quantity=line_item.quantity,
-                    shopify_varient_id=line_item.varient_id,
+                    shopify_variant_id=line_item.variant_id,
                 )
                 db.add(new_order_product)
                 db.commit()
@@ -590,7 +590,7 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                         order_id=new_order.order_id,
                         shopify_product_id=line_item.product_id,
                         quantity=line_item.quantity,
-                        shopify_varient_id=line_item.varient_id,
+                        shopify_variant_id=line_item.variant_id,
                     )
                     db.add(new_order_product)
                     db.commit()

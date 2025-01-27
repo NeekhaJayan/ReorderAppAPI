@@ -49,7 +49,7 @@ class OrderProduct(Base):
     order_product_id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.order_id"), index=True)  # Relates to orders
     shopify_product_id = Column(Integer, index=True)  # Assuming it's an integer
-    shopify_varient_id = Column(Integer, index=True)
+    shopify_variant_id = Column(Integer, index=True)
     quantity = Column(Integer, index=True)  # Quantity as integer
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
