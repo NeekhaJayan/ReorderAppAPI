@@ -62,6 +62,7 @@ def send_reminders():
                       continue
                   placeholders={"first_name": customer.first_name,
                                 "product_name": reminder.product_title,
+                                "product_image":reminder.image_url,
                                 "quantity": reminder.product_quantity,
                                 "remaining_days": shop.buffer_time,
                                 "reorder_url":f"https://{shop.shopify_domain}/checkouts/cn/Z2NwLWFzaWEtc291dGhlYXN0MTowMUpIMlRaVkJTNjExS1BTVlcwUkNRWkVCOA?discount=RESTOCK10",
@@ -147,7 +148,7 @@ def send_reminders():
                           <p>Hello {placeholders["first_name"]},</p>
                           <p>Your <strong>{placeholders["product_name"]}</strong> might be running low. Don't worry – you can reorder with just one click!</p>
                           <div class="product-section">
-                            <img src="https://via.placeholder.com/150x150.png?text=Product+Image" alt="{placeholders["product_name"]}" />
+                            <img src={placeholders["product_image"]} alt="{placeholders["product_name"]}" />
                             <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
                             <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
                             <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>

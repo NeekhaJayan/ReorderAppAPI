@@ -63,10 +63,13 @@ class ProductCreate(BaseModel):
     shopify_product_id: str
     shopify_variant_id: str
     title: str
+    image_url:str
     reorder_days: int
 
 class UpdateProduct(BaseModel):
+    shop_id: int
     shopify_product_id: str
+    shopify_variant_id:str
     reorder_days: Optional[int] = None
 
 class ShopCreate(BaseModel):
@@ -281,6 +284,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
             if existingproduct:
                 # Update existing product details
                 existingproduct.reorder_days = product.reorder_days
+                existingproduct.image_url=product.image_url
                 existingproduct.created_at=datetime.utcnow()
                 existingproduct.is_deleted = False
 
@@ -293,6 +297,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
                     "shopify_product_id": existingproduct.shopify_product_id,
                     "shopify_variant_id": existingproduct.shopify_variant_id,
                     "title": existingproduct.title,
+                    "productImage":existingproduct.image_url,
                     "reorder_days": existingproduct.reorder_days,
                     "created_at": existingproduct.created_at,
                 })
@@ -303,6 +308,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
                     shopify_product_id=product.shopify_product_id,
                     shopify_variant_id=product.shopify_variant_id,
                     title=product.title,
+                    image_url=product.image_url,
                     reorder_days=product.reorder_days,
                 )
                 db.add(new_product)
@@ -315,6 +321,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
                     "shopify_product_id": new_product.shopify_product_id,
                     "shopify_variant_id": new_product.shopify_variant_id,
                     "title": new_product.title,
+                    "productImage":new_product.image_url,
                     "reorder_days": new_product.reorder_days,
                     "created_at": new_product.created_at,
                 })
@@ -327,38 +334,44 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
     return reorder_details
 
 @router.patch("/products/{product_id}")
-async def update_product(
-    product_id: int,
-    product: UpdateProduct,
-    db: Session = Depends(get_db)
-):
+async def update_product(product_id: int,product: UpdateProduct,db: Session = Depends(get_db)):
     # Fetch the existing product by product_id
-    
-    existing_product = db.query(Products).filter(Products.shopify_product_id == product_id).first()
-    
+    shop = db.query(Shop).filter(Shop.shop_id == product.shop_id).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+    existing_product = (db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == product.shopify_variant_id) &(Products.shop_id == product.shop_id)).first())
     if not existing_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     if product.shopify_product_id is not None:
-        existing_product.shopify_product_id = product.shopify_product_id
-        existing_product.reorder_days = product.reorder_days
+            existing_product.reorder_days = product.reorder_days
+            if product.reorder_days is None:
+                existing_product.is_deleted = True
 
-        if product.reorder_days is  None:
-            existing_product.is_deleted = True
-
-        
-
-    # Optionally update a modified timestamp (if your model supports it)
-    # existing_product.modified_at = datetime.utcnow()
-
+    reminders = (db.query(Reminder).filter((Reminder.product_id == existing_product.product_id) &(Reminder.status == 'Pending') &(Reminder.is_deleted == False) &(Reminder.shop_id == shop.shopify_domain)).all())
+    if reminders:
+        for reminder in reminders:
+            order = (db.query(Orders).filter(Orders.order_id == reminder.order_id).first())
+            order_product = (db.query(OrderProduct).filter(OrderProduct.order_id == reminder.order_id).first())
+            print(type(order.order_date))
+            order_date = parser.parse(order.order_date)
+            # order_date = datetime.strptime(order.order_date, "%Y-%m-%d %H:%M:%S%z")
+            print(type(order_date))   
+            if order and order_product:
+                reminder.reminder_date = (order_date +(order_product.quantity * timedelta(days=int(product.reorder_days))) -timedelta(days=shop.buffer_time))
     try:
-        # Commit the changes to the database
         db.commit()
-        db.refresh(existing_product)  # Refresh to get the updated data
-        return {"message": "Product updated successfully", "product_id": existing_product.product_id}
+        db.refresh(existing_product)
+        for reminder in reminders:
+            db.refresh(reminder)
+
+        return {
+            "message": "Product updated successfully",
+            "product_id": existing_product.product_id,
+        }
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating product: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating product: {str(e)}")
 
 @router.post("/shops")
 async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
@@ -518,7 +531,10 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                     product_id=product.product_id,
                     order_id=new_order.order_id,
                     reminder_date=reminder_date,
-                    shop_id=order.shop
+                    shop_id=order.shop,
+                    product_title=product.title,
+                    product_quantity=line_item.quantity,
+                    image_url=product.image_url
                     
                 )
                 db.add(create_reminder_entry)
@@ -613,12 +629,16 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                         reminder_date=reminder_date,
                         shop_id=order.shop,
                         product_title=product.title,
-                        product_quantity=line_item.quantity
-                        
+                        product_quantity=line_item.quantity,
+                        image_url=product.image_url
                     )
                     db.add(create_reminder_entry)
                     db.commit()
                     db.refresh(create_reminder_entry)
+
+            shop.order_flag=True
+            db.commit()
+            db.refresh(shop)
 
             
             
@@ -706,7 +726,8 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
     # General settings
     general_settings = {
         "bannerImage":url,
-        "bannerImageName":shop.shop_logo
+        "bannerImageName":shop.shop_logo,
+        "syncStatus":shop.order_flag
     }
 
     # Email template settings
