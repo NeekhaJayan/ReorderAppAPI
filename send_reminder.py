@@ -20,7 +20,7 @@ def send_reminders():
         print(today)
         reminders = (
             db.query(Reminder)
-            .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False)
+            .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False ,Reminder.status=="Pending")
             .all()
         )
         print(reminders)
@@ -30,7 +30,7 @@ def send_reminders():
 
         for reminder in reminders:
             try:
-                reminder_product=db.query(Products).filter(Products.product_id==reminder.product_id).first()
+                reminder_product=db.query(Products).filter((Products.product_id==reminder.product_id)&(Products.is_deleted==False)).first()
                 if reminder_product:
                   customer = (
                       db.query(ShopCustomer)

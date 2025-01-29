@@ -342,23 +342,34 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
     existing_product = (db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == product.shopify_variant_id) &(Products.shop_id == product.shop_id)).first())
     if not existing_product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    reminders = db.query(Reminder).filter_by(product_id=existing_product.product_id,status="Pending",is_deleted=False,shop_id=shop.shopify_domain).all()
 
     if product.shopify_product_id is not None:
-            existing_product.reorder_days = product.reorder_days
-            if product.reorder_days is None:
-                existing_product.is_deleted = True
+        existing_product.reorder_days = product.reorder_days
+        if product.reorder_days is None:
+            existing_product.is_deleted = True
+            if reminders:
+                for reminder in reminders:
+                    reminder.is_deleted = True
+        else:
 
-    reminders = (db.query(Reminder).filter((Reminder.product_id == existing_product.product_id) &(Reminder.status == 'Pending') &(Reminder.is_deleted == False) &(Reminder.shop_id == shop.shopify_domain)).all())
-    if reminders:
-        for reminder in reminders:
-            order = (db.query(Orders).filter(Orders.order_id == reminder.order_id).first())
-            order_product = (db.query(OrderProduct).filter(OrderProduct.order_id == reminder.order_id).first())
-            print(type(order.order_date))
-            order_date = parser.parse(order.order_date)
-            # order_date = datetime.strptime(order.order_date, "%Y-%m-%d %H:%M:%S%z")
-            print(type(order_date))   
-            if order and order_product:
-                reminder.reminder_date = (order_date +(order_product.quantity * timedelta(days=int(product.reorder_days))) -timedelta(days=shop.buffer_time))
+            if reminders:
+                for reminder in reminders:
+                    order = (db.query(Orders).filter(Orders.order_id == reminder.order_id).first())
+                    order_product = (db.query(OrderProduct).filter(OrderProduct.order_id == reminder.order_id).first())
+                    print(type(order.order_date))
+                    order_date = parser.parse(order.order_date)
+                    # order_date = datetime.strptime(order.order_date, "%Y-%m-%d %H:%M:%S%z")
+                    print(type(order_date))   
+                    if order and order_product:
+                        try:
+                            reminder.reminder_date = (order_date +(order_product.quantity * timedelta(days=int(product.reorder_days))) -timedelta(days=shop.buffer_time))
+
+                        except Exception as e:
+                            db.rollback()
+                            raise HTTPException(status_code=500, detail=f"Error parsing order date: {str(e)}")
+
     try:
         db.commit()
         db.refresh(existing_product)
