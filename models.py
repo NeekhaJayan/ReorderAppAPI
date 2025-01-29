@@ -13,9 +13,10 @@ class Shop(Base):
     shop_logo = Column(String, nullable=True)  # Logo path or URL as string
     email = Column(String, index=True)  # Email should be a string
     message_template_id = Column(Integer, nullable=True)  # Assuming template ID is an integer
-    buffer_time = Column(String, nullable=True)
+    buffer_time = Column(String, nullable=True,default=5)
     coupon = Column(String, nullable=True)
     discountpercent= Column(String, nullable=True)
+    order_flag=Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion
@@ -84,6 +85,7 @@ class Products(Base):
     shopify_product_id = Column(String, index=True)  # Shopify product ID is a string
     shopify_variant_id = Column(String, index=True) 
     title = Column(String, index=True)  # Product title as a string
+    image_url=Column(String, index=True)
     reorder_days = Column(Integer, index=True)  # Reorder days as integer
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -105,6 +107,7 @@ class Reminder(Base):
     shop_id=Column(String,index=True)
     product_title=Column(String,index=True)
     product_quantity=Column(Integer, index=True) 
+    image_url=Column(String,index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
