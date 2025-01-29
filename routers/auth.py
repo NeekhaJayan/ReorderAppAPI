@@ -353,7 +353,6 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
                 for reminder in reminders:
                     reminder.is_deleted = True
         else:
-
             if reminders:
                 for reminder in reminders:
                     order = (db.query(Orders).filter(Orders.order_id == reminder.order_id).first())
