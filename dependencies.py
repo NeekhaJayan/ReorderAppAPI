@@ -17,13 +17,13 @@ AWS_BUCKET='reorderpro.decagrowth.com'
 AWS_REGION_NAME='ap-south-1'
 API_KEY=os.getenv("SENDINBLUE_API_KEY")
 
-def send_email(to, subject, body, sender_email):
+def send_email(to, subject, body, sender_email,sender_name):
     configuration = sib_api_v3_sdk.Configuration()
     configuration.api_key['api-key'] = API_KEY
     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
     email_data = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": to}],
-        sender={"email": sender_email},
+        sender={"name": sender_name, "email": sender_email},
         subject=subject,
         html_content=body
     )

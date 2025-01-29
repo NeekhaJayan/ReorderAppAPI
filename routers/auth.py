@@ -703,10 +703,10 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         configuration = sib_api_v3_sdk.Configuration()
         configuration.api_key['api-key'] =API_KEY 
         api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-    
+        sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
         email_data = sib_api_v3_sdk.SendSmtpEmail(
             to=[{"email": shop.email}],
-            sender={"email": emailTemplateSettings.fromName},
+            sender={"name": sender_name,"email": emailTemplateSettings.fromName},
             subject=f"Test Mail: {emailTemplateSettings.subject}",
             html_content=html_content
         )
@@ -850,6 +850,7 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
                 subject='Notification: Product Deletion and Impact on Reorder Emails',
                 body=email_template,
                 sender_email='ReorderPro',
+                sender_name=shop.shop_name
                 )
             db.delete(product)
             db.commit()
