@@ -9,6 +9,8 @@ import os
 app = FastAPI()
 
 
+AWS_BUCKET=os.getenv("AWS_BUCKET")
+AWS_REGION_NAME=os.getenv("AWS_REGION_NAME")
 
 def send_reminders():
     # Create a database session
