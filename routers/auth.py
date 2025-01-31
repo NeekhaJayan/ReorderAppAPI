@@ -724,21 +724,25 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
     shop = db.query(Shop).filter(Shop.shopify_domain == shop_name).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
-    
-    s3_path = f"{shop.shop_id}/{shop.shop_logo}"
-    client_action='get_object'
-    # url = s3.generate_presigned_url(
-    #      client_action, Params={"Bucket": AWS_BUCKET, "Key": s3_path}, ExpiresIn = 3600
-    # )
-    url = f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{s3_path}"
+    if shop.shop_logo:
+        s3_path = f"{shop.shop_id}/{shop.shop_logo}"
+        # client_action='get_object'
+        # url = s3.generate_presigned_url(
+        #      client_action, Params={"Bucket": AWS_BUCKET, "Key": s3_path}, ExpiresIn = 3600
+        # )
+        url = f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{s3_path}"
     
 
     # General settings
-    general_settings = {
-        "bannerImage":url,
-        "bannerImageName":shop.shop_logo,
-        "syncStatus":shop.order_flag
-    }
+        general_settings = {
+            "bannerImage":url,
+            "bannerImageName":shop.shop_logo,
+            "syncStatus":shop.order_flag
+        }
+    else:
+        general_settings = {
+            "syncStatus":shop.order_flag
+        }
 
     # Email template settings
     email_template = db.query(Message_Template).filter(Message_Template.shop_name == shop_name).first()
