@@ -170,7 +170,7 @@ def send_reminders():
                     </body>
                     </html>'''
                   # print(email_template)
-                  senderName = message_template.mail_server if message_template.mail_server else shop.shop_name
+                  senderName =shop.shop_name
                   send_email(
                       to=customer.email,
                       subject=message_template.subject,
