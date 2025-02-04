@@ -792,9 +792,11 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
         shop = db.query(Shop).filter(Shop.shopify_domain == payload.shop).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        product = db.query(Products).filter((Products.shopify_product_id == payload.product_id)).first()
-        reminder=db.query(Reminder).filter((Reminder.product_id==payload.product_id)).first()
-        if product:
+        products = db.query(Products).filter((Products.shopify_product_id == payload.product_id)).all()
+        if not products:
+            return {"message": "No Products Found", "payload": payload}
+        for product in products:
+            reminder=db.query(Reminder).filter((Reminder.product_id==product.product_id)).first()
             if reminder:
                 db.delete(reminder)
                 email_template=f'''<!DOCTYPE html>
@@ -842,8 +844,8 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
                                             <p>If you have any questions or need assistance, please don’t hesitate to reach out to us. We’re here to help.</p>
                                             <p>Thank you for using <strong>{shop.shop_name}</strong>!</p>
                                             <div class="footer">
-                                              <p>Powered by ReOrder Reminder Pro</p>
-                                              <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
+                                            <p>Powered by ReOrder Reminder Pro</p>
+                                            <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
                                             </div>
                                         </div>
                                     </body>
@@ -859,10 +861,112 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
             db.delete(product)
             db.commit()
             return {"message": "Deleted Successfully", "payload": payload}
-        else:
-            return {"message": "No Product Found", "payload": payload}
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
 
-   
+@router.delete("/webhook/product_update")
+async def update_product(payload:Request,db:Session=Depends(get_db)) :
+    try:
+        payload = await payload.json()
+        product_id = payload.get("id")
+        shop_domain = payload.get("shop")
+        payload_variant_ids = {variant["id"] for variant in payload.get("variants", [])}
+
+        if not product_id or not shop_domain:
+            raise HTTPException(status_code=400, detail="Missing product ID or shop domain")
+
+        shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+
+        # Get products from the database
+        products = db.query(Products).filter(Products.shopify_product_id == product_id).all()
+        if not products:
+            return {"message": "No Products Found", "payload": payload}
+
+        # Get variant IDs from the database
+        db_variant_ids = {product.shopify_variant_id for product in products}
+        variants_to_delete = db_variant_ids - payload_variant_ids
+
+        # Delete Variants from Database
+        if variants_to_delete:
+            db.query(Products).filter(Products.shopify_variant_id.in_(variants_to_delete)).delete(synchronize_session=False)
+
+        # Delete Product and Reminder if needed
+        for product in products:
+            reminder = db.query(Reminder).filter(Reminder.product_id == product.product_id).first()
+            if reminder:
+                db.delete(reminder)
+                # Send email notification
+                email_template = f"""
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Product Deletion Notification</title>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            margin: 20px;
+                        }}
+                        .container {{
+                            max-width: 600px;
+                            margin: auto;
+                            padding: 20px;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            background-color: #f9f9f9;
+                        }}
+                        h1 {{
+                            font-size: 20px;
+                            color: #444;
+                        }}
+                        p {{
+                            margin: 10px 0;
+                        }}
+                        .footer {{
+                            margin-top: 20px;
+                            font-size: 14px;
+                            color: #666;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Notification: Product Deletion and Impact on Reorder Emails</h1>
+                        <p>Dear <strong>{shop.shop_name}</strong>,</p>
+                        <p>We hope this email finds you well.</p>
+                        <p>This is to inform you that the product <strong>{reminder.product_title}</strong> has been deleted from your Shopify store. As a result, our <strong>{shop.shop_name}</strong> will no longer be able to send reorder reminder emails to customers for this product.</p>
+                        <p>We want to ensure that you are aware of this change, as it may impact your customer engagement and sales for this product. If this deletion was unintentional, we recommend restoring the product to maintain seamless communication with your customers.</p>
+                        <p>If you have any questions or need assistance, please don’t hesitate to reach out to us. We’re here to help.</p>
+                        <p>Thank you for using <strong>{shop.shop_name}</strong>!</p>
+                        <div class="footer">
+                            <p>Powered by ReOrder Reminder Pro</p>
+                            <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                send_email(
+                    to=shop.email,
+                    subject="Notification: Product Deletion and Impact on Reorder Emails",
+                    body=email_template,
+                    sender_email="ReorderPro",
+                    sender_name=shop.shop_name
+                )
+
+            db.delete(product)
+
+        db.commit()
+        return {"message": "Deleted Successfully", "deleted_variants": list(variants_to_delete), "payload": payload}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
+
