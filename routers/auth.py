@@ -456,10 +456,15 @@ async def delete_shop(shop_domain: str, db: Session = Depends(get_db)):
         shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")  
-        else:
-            db.delete(shop)
-            db.commit()
-            return {"message": "Deleted Successfully"}
+        message_template = db.query(Message_Template).filter((Message_Template.message_template_id == shop.message_template_id) |(Message_Template.shop_name == shop.shopify_domain)).first()
+
+        if message_template:
+            db.delete(message_template)
+
+        # Delete shop
+        db.delete(shop)
+        db.commit()
+        return {"message": "Deleted Successfully"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
