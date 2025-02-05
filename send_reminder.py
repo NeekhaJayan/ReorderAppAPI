@@ -175,8 +175,8 @@ def send_reminders():
                       to=customer.email,
                       subject=message_template.subject,
                       body=email_template,
-                      sender_email=message_template.fromname,
-                      sender_name=senderName
+                      sender_email=message_template.fromemail,
+                      sender_name=message_template.fromname
                   )
 
                 
