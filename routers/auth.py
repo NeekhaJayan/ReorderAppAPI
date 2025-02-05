@@ -881,6 +881,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
     try:
         payload = await payload.json()
         print(payload)
+
         product_id = payload.get("product_id")  # Fix key mismatch
         shop_domain = payload.get("shop")
         variants = payload.get("variants") or [] 
@@ -898,7 +899,8 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
             return {"message": "No Products Found", "payload": payload}
 
         # Get variant IDs from the database
-        payload_variant_ids = {variant["id"] for variant in variants}
+        # payload_variant_ids = {variant["id"] for variant in variants}
+        payload_variant_ids=set(variants)
         db_variant_ids = {product.shopify_variant_id for product in products}
         variants_to_delete = db_variant_ids - payload_variant_ids
         print(payload_variant_ids)
