@@ -900,15 +900,21 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
 
         # Get variant IDs from the database
         # payload_variant_ids = {variant["id"] for variant in variants}
-        payload_variant_ids=set(variants)
+        payload_variant_ids = {str(variant) for variant in variants}
         db_variant_ids = {product.shopify_variant_id for product in products}
-        variants_to_delete = db_variant_ids - payload_variant_ids
         print(payload_variant_ids)
         print(db_variant_ids)
+        variants_to_delete = db_variant_ids - payload_variant_ids
+       
         print(variants_to_delete)
         # Delete Variants from Database
         if variants_to_delete:
-            db.query(Products).filter(Products.shopify_variant_id.in_(variants_to_delete)).delete(synchronize_session=False)
+            for variant in variants_to_delete:
+                product_to_delete=db.query(Products).filter((Products.shopify_product_id==str(product_id))&(Products.shopify_variant_id==variant)).first()
+                if product_to_delete:
+                    db.delete(product_to_delete)
+            
+
 
         # Delete Product and Reminder if needed
         for product in products:
@@ -980,7 +986,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
                 except Exception as e:
                     print(f"Email sending failed: {e}")
 
-            db.delete(product)
+
 
         db.commit()
         return {"message": "Deleted Successfully", "deleted_variants": list(variants_to_delete), "payload": payload}
