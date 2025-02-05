@@ -77,7 +77,6 @@ class ShopCreate(BaseModel):
     shop_name: Optional[str] = None
     shop_logo: Optional[str] = None  # Optional field
     email: Optional[EmailStr] = None # Ensures email is valid
-    message_template_id: Optional[int] = None
 
 class LineItem(BaseModel):
     product_id: int
@@ -116,7 +115,8 @@ class EmailTemplateSettings(BaseModel):
     mail_server: str
     port: str
     subject: str
-    fromName: EmailStr
+    fromName: str
+    fromEmail: EmailStr
     coupon: Optional[str] = None
     discountPercent: Optional[str] = None
     bufferTime: Optional[int] = None
@@ -396,7 +396,6 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
         shop_name=shop.shop_name,
         shop_logo=shop.shop_logo,
         email=shop.email,
-        message_template_id=shop.message_template_id,
         created_at=datetime.utcnow(),
         modified_at=datetime.utcnow(),
     )
@@ -452,7 +451,7 @@ async def update_shop(
 
 
 @router.delete("/webhook/uninstallApp")
-async def receive_order(shop_domain: str, db: Session = Depends(get_db)):
+async def delete_shop(shop_domain: str, db: Session = Depends(get_db)):
     try:
         shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
         if not shop:
@@ -675,6 +674,21 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         html_content = HTML_TEMPLATE.format(**placeholders)
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
+        new_message_template = Message_Template(
+                                    message_template=' ',
+                                    message_channel = "email",
+                                    shop_name=emailTemplateSettings.shop_name,
+                                    mail_server = emailTemplateSettings.mail_server,
+                                    port=int(emailTemplateSettings.port),
+                                    fromname = emailTemplateSettings.fromName,
+                                    fromemail=emailTemplateSettings.fromEmail,
+                                    subject = emailTemplateSettings.subject,
+                                    created_at=datetime.utcnow(),
+                                    modified_at=datetime.utcnow(),
+                                    )
+        db.add(new_message_template)
+        db.commit()
+        db.refresh(new_message_template)
         if emailTemplateSettings.bufferTime:
             shop.buffer_time=emailTemplateSettings.bufferTime
         if emailTemplateSettings.coupon:
@@ -682,31 +696,18 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
 
         if emailTemplateSettings.discountPercent:
             shop.discountpercent=emailTemplateSettings.discountPercent
+        
+        shop.message_template_id=new_message_template.message_template_id
         db.commit()
         db.refresh(shop)
-        
-        new_message_template = Message_Template(
-        message_template=' ',
-        message_channel = "email",
-        shop_name=emailTemplateSettings.shop_name,
-        mail_server = emailTemplateSettings.mail_server,
-        port=int(emailTemplateSettings.port),
-        fromname = emailTemplateSettings.fromName,
-        subject = emailTemplateSettings.subject,
-        created_at=datetime.utcnow(),
-        modified_at=datetime.utcnow(),
-         )
-        db.add(new_message_template)
-        db.commit()
-        db.refresh(new_message_template)
 
         configuration = sib_api_v3_sdk.Configuration()
         configuration.api_key['api-key'] =API_KEY 
         api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-        sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
+        # sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
         email_data = sib_api_v3_sdk.SendSmtpEmail(
             to=[{"email": shop.email}],
-            sender={"name": sender_name,"email": emailTemplateSettings.fromName},
+            sender={"name": emailTemplateSettings.fromName,"email": emailTemplateSettings.fromEmail},
             subject=f"Test Mail: {emailTemplateSettings.subject}",
             html_content=html_content
         )
@@ -715,8 +716,10 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
             
         except ApiException as e:
             print(f"Error sending email: {e}")
-    return {"Your email template has been saved successfully! All future reminders will use this updated template to engage your customers." }
+        return {"Your email template has been saved successfully! All future reminders will use this updated template to engage your customers." }
 
+    else:
+        raise HTTPException(status_code=400, detail="Invalid request payload")
 
 @router.get("/get-settings")
 async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseClient = Depends(get_s3_client)):
@@ -754,14 +757,16 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
             "mail_server": email_template.mail_server,
             "port": email_template.port,
             "fromName": email_template.fromname,
+            "fromEmail" : email_template.fromemail,
             "subject": email_template.subject,
             "message_channel": email_template.message_channel,
         }
+        print(email_template_settings)
     else:
-        email_template_settings = None
+        email_template_settings = {"bufferTime": shop.buffer_time}
 
     settings_data={ "email_template_settings":email_template_settings,"general_settings":general_settings}
-    # print(settings_data)
+    print(settings_data)
     return settings_data
 
 @router.post("/upload_to_aws/{shop_name}")

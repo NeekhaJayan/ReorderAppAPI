@@ -124,6 +124,7 @@ class Message_Template(Base):
     mail_server = Column(String, index=True)
     port=Column(Integer, index=True)
     fromname = Column(String, index=True)
+    fromemail= Column(String, index=True)
     subject = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
