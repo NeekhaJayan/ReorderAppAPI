@@ -880,9 +880,10 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
 async def update_product(payload:Request,db:Session=Depends(get_db)) :
     try:
         payload = await payload.json()
-        product_id = payload.get("id")
+        print(payload)
+        product_id = payload.get("product_id")  # Fix key mismatch
         shop_domain = payload.get("shop")
-        payload_variant_ids = {variant["id"] for variant in payload.get("variants", [])}
+        variants = payload.get("variants") or [] 
 
         if not product_id or not shop_domain:
             raise HTTPException(status_code=400, detail="Missing product ID or shop domain")
@@ -897,9 +898,12 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
             return {"message": "No Products Found", "payload": payload}
 
         # Get variant IDs from the database
+        payload_variant_ids = {variant["id"] for variant in variants}
         db_variant_ids = {product.shopify_variant_id for product in products}
         variants_to_delete = db_variant_ids - payload_variant_ids
-
+        print(payload_variant_ids)
+        print(db_variant_ids)
+        print(variants_to_delete)
         # Delete Variants from Database
         if variants_to_delete:
             db.query(Products).filter(Products.shopify_variant_id.in_(variants_to_delete)).delete(synchronize_session=False)
@@ -963,13 +967,16 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
                 </body>
                 </html>
                 """
-                send_email(
-                    to=shop.email,
-                    subject="Notification: Product Deletion and Impact on Reorder Emails",
-                    body=email_template,
-                    sender_email="ReorderPro",
-                    sender_name=shop.shop_name
-                )
+                try:
+                    send_email(
+                        to=shop.email,
+                        subject="Notification: Product Deletion and Impact on Reorder Emails",
+                        body=email_template,
+                        sender_email="ReorderPro",
+                        sender_name=shop.shop_name
+                    )
+                except Exception as e:
+                    print(f"Email sending failed: {e}")
 
             db.delete(product)
 
