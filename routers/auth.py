@@ -112,8 +112,8 @@ class EmailTemplateSettings(BaseModel):
     shop_name:str
     tab: str
     # reminderEmailsEnabled:bool
-    mail_server: str
-    port: str
+    # mail_server: str
+    # port: str
     subject: str
     fromName: str
     fromEmail: EmailStr
@@ -683,8 +683,6 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
                                     message_template=' ',
                                     message_channel = "email",
                                     shop_name=emailTemplateSettings.shop_name,
-                                    mail_server = emailTemplateSettings.mail_server,
-                                    port=int(emailTemplateSettings.port),
                                     fromname = emailTemplateSettings.fromName,
                                     fromemail=emailTemplateSettings.fromEmail,
                                     subject = emailTemplateSettings.subject,
@@ -759,8 +757,6 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
             "coupon": shop.coupon,
             "bufferTime": shop.buffer_time,
             "discountPercent": shop.discountpercent,
-            "mail_server": email_template.mail_server,
-            "port": email_template.port,
             "fromName": email_template.fromname,
             "fromEmail" : email_template.fromemail,
             "subject": email_template.subject,
