@@ -11,3 +11,4 @@ python-dateutil==2.8.2
 sib-api-v3-sdk==7.6.0
 boto3==1.33.9
 botocore==1.33.9
+python-dotenv==1.0.0

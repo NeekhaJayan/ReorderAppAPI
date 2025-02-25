@@ -2,6 +2,9 @@ import boto3
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
  
 AWS_BUCKET='reorderpro.decagrowth.com'
@@ -12,9 +15,6 @@ AWS_REGION_NAME='ap-south-1'
 s3_resource = boto3.resource('s3',region_name=AWS_REGION_NAME, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 BUCKET=s3_resource.Bucket(AWS_BUCKET)
 
-
-AWS_BUCKET='reorderpro.decagrowth.com'
-AWS_REGION_NAME='ap-south-1'
 API_KEY=os.getenv("SENDINBLUE_API_KEY")
 
 def send_email(to, subject, body, sender_email,sender_name):
@@ -37,3 +37,4 @@ def send_email(to, subject, body, sender_email,sender_name):
 
 def get_s3_client():
     return boto3.client('s3',region_name=AWS_REGION_NAME, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+

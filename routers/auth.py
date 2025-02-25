@@ -679,19 +679,34 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         html_content = HTML_TEMPLATE.format(**placeholders)
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        new_message_template = Message_Template(
-                                    message_template=' ',
-                                    message_channel = "email",
-                                    shop_name=emailTemplateSettings.shop_name,
-                                    fromname = emailTemplateSettings.fromName,
-                                    fromemail=emailTemplateSettings.fromEmail,
-                                    subject = emailTemplateSettings.subject,
-                                    created_at=datetime.utcnow(),
-                                    modified_at=datetime.utcnow(),
-                                    )
-        db.add(new_message_template)
-        db.commit()
-        db.refresh(new_message_template)
+        if not shop.message_template_id:
+
+            new_message_template = Message_Template(
+                                        message_template=' ',
+                                        message_channel = "email",
+                                        shop_name=emailTemplateSettings.shop_name,
+                                        fromname = emailTemplateSettings.fromName,
+                                        fromemail=emailTemplateSettings.fromEmail,
+                                        subject = emailTemplateSettings.subject,
+                                        created_at=datetime.utcnow(),
+                                        modified_at=datetime.utcnow(),
+                                        )
+            db.add(new_message_template)
+            db.commit()
+            db.refresh(new_message_template)
+            shop.message_template_id=new_message_template.message_template_id
+        else:
+            update_message_Template=db.query(Message_Template).filter(Message_Template.message_template_id == shop.message_template_id).first()
+            if emailTemplateSettings.fromName:
+                update_message_Template.fromname=emailTemplateSettings.fromName
+            if emailTemplateSettings.fromEmail:
+                update_message_Template.fromemail=emailTemplateSettings.fromEmail
+            if emailTemplateSettings.subject:
+                update_message_Template.subject = emailTemplateSettings.subject
+            update_message_Template.modified_at=datetime.utcnow()
+            db.commit()
+            db.refresh(update_message_Template)
+
         if emailTemplateSettings.bufferTime:
             shop.buffer_time=emailTemplateSettings.bufferTime
         if emailTemplateSettings.coupon:
@@ -700,10 +715,9 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         if emailTemplateSettings.discountPercent:
             shop.discountpercent=emailTemplateSettings.discountPercent
         
-        shop.message_template_id=new_message_template.message_template_id
+        
         db.commit()
         db.refresh(shop)
-
         configuration = sib_api_v3_sdk.Configuration()
         configuration.api_key['api-key'] =API_KEY 
         api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
@@ -773,10 +787,14 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
 @router.post("/upload_to_aws/{shop_name}")
 async def upload_file_to_server(shop_name:str,db:db_dependency,s3: BaseClient = Depends(get_s3_client),bannerImage: UploadFile = File(...)):
     try:
+        print(shop_name)
+        print(bannerImage.filename)
         shop = db.query(Shop).filter(Shop.shopify_domain ==shop_name).first()
         if not bannerImage:
             raise HTTPException(status_code=400, detail="No file provided")
         folder_name = f"{shop.shop_id}/{bannerImage.filename}"
+        print(folder_name)
+        print(AWS_BUCKET)
         s3.upload_fileobj(bannerImage.file, AWS_BUCKET, folder_name)
         
         shop.shop_logo=bannerImage.filename
