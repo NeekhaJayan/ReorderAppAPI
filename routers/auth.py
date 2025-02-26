@@ -336,6 +336,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
 @router.patch("/products/{product_id}")
 async def update_product(product_id: int,product: UpdateProduct,db: Session = Depends(get_db)):
     # Fetch the existing product by product_id
+    reorder_details = []
     shop = db.query(Shop).filter(Shop.shop_id == product.shop_id).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -352,6 +353,7 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
             if reminders:
                 for reminder in reminders:
                     reminder.is_deleted = True
+            
         else:
             if reminders:
                 for reminder in reminders:
@@ -368,17 +370,25 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
                         except Exception as e:
                             db.rollback()
                             raise HTTPException(status_code=500, detail=f"Error parsing order date: {str(e)}")
+            reorder_details.append({
+                    "product_id": existing_product.product_id,
+                    "shop_id": existing_product.shop_id,
+                    "shopify_product_id": existing_product.shopify_product_id,
+                    "shopify_variant_id": int(existing_product.shopify_variant_id),
+                    "title": existing_product.title,
+                    "productImage":existing_product.image_url,
+                    "reorder_days": existing_product.reorder_days,
+                    "created_at": existing_product.created_at,
+                })
+            
 
     try:
         db.commit()
         db.refresh(existing_product)
         for reminder in reminders:
             db.refresh(reminder)
-
-        return {
-            "message": "Product updated successfully",
-            "product_id": existing_product.product_id,
-        }
+        
+        return reorder_details
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating product: {str(e)}")
