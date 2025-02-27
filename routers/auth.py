@@ -512,7 +512,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             # if order_date.tzinfo is None:
             #     timezone = pytz.timezone("UTC")  # Replace with the relevant timezone if needed
             #     order_date = timezone.localize(order_date)
-            product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.shopify_variant_id == line_item.variant_id)&(Products.is_deleted == False)).first()
+            product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.shopify_variant_id == str(line_item.variant_id))&(Products.is_deleted == False)).first()
             if product:
                 
             
