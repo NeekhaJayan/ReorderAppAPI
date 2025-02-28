@@ -149,12 +149,23 @@ def send_reminders():
                         <div class="content">
                           <p>Hello {placeholders["first_name"]},</p>
                           <p>Your <strong>{placeholders["product_name"]}</strong> might be running low. Don't worry – you can reorder with just one click!</p>
-                          <div class="product-section">
-                            <img src={placeholders["product_image"]} alt="{placeholders["product_name"]}" style="max-width: 200px; height: auto; border-radius: 4px;"  />
-                            <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
-                            <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
-                            <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>
-                          </div>
+                          <table class="product-section" align="center" width="100%" cellspacing="0" cellpadding="10" border="0">
+                            <tr>
+                              <td align="center">
+                                <img src="{placeholders["product_image"]}" 
+                                    alt="{placeholders["product_name"]}" 
+                                    width="200" height="auto"
+                                    style="display: block; max-width: 200px; height: auto; border-radius: 4px;" />
+                              </td>
+                              <td align="left" width="70%">
+                                      <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
+                                      <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
+                                      <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>
+                              </td>
+                              
+                            </tr>
+                          </table>
+
                           <div class="cta">
                             <a href="{placeholders["reorder_url"]}" target="_blank">Reorder Now and Save 10%</a>
                           </div>
