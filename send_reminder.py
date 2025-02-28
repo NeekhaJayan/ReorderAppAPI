@@ -150,7 +150,7 @@ def send_reminders():
                           <p>Hello {placeholders["first_name"]},</p>
                           <p>Your <strong>{placeholders["product_name"]}</strong> might be running low. Don't worry – you can reorder with just one click!</p>
                           <div class="product-section">
-                            <img src={placeholders["product_image"]} alt="{placeholders["product_name"]}" />
+                            <img src={placeholders["product_image"]} alt="{placeholders["product_name"]}" style="max-width: 200px; height: auto; border-radius: 4px;"  />
                             <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
                             <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
                             <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>
