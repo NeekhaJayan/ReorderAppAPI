@@ -258,6 +258,7 @@ async def get_products(shop_id:int, db: Session = Depends(get_db)):
                 "shopify_variant_id":product.shopify_variant_id,
                 "title": product.title,
                 "reorder_days": product.reorder_days,
+                "image_url":product.image_url,
                 "created_at":product.created_at,
             }
             for product in products
