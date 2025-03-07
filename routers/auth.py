@@ -426,6 +426,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     return {
         "shop_id": shop.shop_id,
         "buffer_time":shop.buffer_time,
+        "email":shop.email,
     }
 
 @router.patch("/shops/{shop_id}")
