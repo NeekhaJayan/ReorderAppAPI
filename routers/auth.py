@@ -121,7 +121,6 @@ class EmailTemplateSettings(BaseModel):
     discountPercent: Optional[str] = None
     bufferTime: Optional[int] = None
 
-
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -1021,4 +1020,25 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Deletion failed: {e}")
+
+
+@router.get("/email-status_count")
+async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db:Session=Depends(get_db)) :
+    try:
+        product=(db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == variant_id) &(Products.shop_id == shop_id)).first())
+        print(product)
+        if not product:
+            return {
+                "Scheduled Email Count": 0,
+                "Dispatched Email Count": 0
+            }
+        scheduled_email_count=db.query(Reminder).filter((Reminder.status=='Pending')&(Reminder.product_id==product.product_id)).count()
+        dispatched_email_count=db.query(Reminder).filter((Reminder.status=='Send')&(Reminder.product_id==product.product_id)).count()
+        return {
+                "Scheduled Email Count": scheduled_email_count,
+                "Dispatched Email Count": dispatched_email_count
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fetch Failed: {e}")
+
 
