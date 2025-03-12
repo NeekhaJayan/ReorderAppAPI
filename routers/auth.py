@@ -1029,14 +1029,14 @@ async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db
         print(product)
         if not product:
             return {
-                "Scheduled Email Count": 0,
-                "Dispatched Email Count": 0
+                "Scheduled_Count": 0,
+                "Dispatched_Count": 0
             }
         scheduled_email_count=db.query(Reminder).filter((Reminder.status=='Pending')&(Reminder.product_id==product.product_id)).count()
         dispatched_email_count=db.query(Reminder).filter((Reminder.status=='Send')&(Reminder.product_id==product.product_id)).count()
         return {
-                "Scheduled Email Count": scheduled_email_count,
-                "Dispatched Email Count": dispatched_email_count
+                "Scheduled_Count": scheduled_email_count,
+                "Dispatched_Count": dispatched_email_count
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fetch Failed: {e}")
