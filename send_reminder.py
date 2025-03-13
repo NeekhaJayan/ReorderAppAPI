@@ -64,6 +64,7 @@ def send_reminders():
                       continue
                   placeholders={"first_name": customer.first_name,
                                 "product_name": reminder.product_title,
+                                "shop":shop.shop_name,
                                 "product_image":reminder.image_url,
                                 "quantity": reminder.product_quantity,
                                 "remaining_days": shop.buffer_time,
@@ -82,24 +83,24 @@ def send_reminders():
                           margin: 0;
                           padding: 0;
                           background-color: #f9fafb;
-                          color: #202223;
+                          color: rgb(3, 3, 3);
                           height: 100%;
                           overflow: auto;
                         }}
                         .email-container {{
-                          max-width: 600px;
                           margin: 40px auto;
                           background: #ffffff;
                           border: 1px solid #dbe1e6;
                           border-radius: 8px;
                           overflow: hidden;
                           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                          min-height: 1200px; 
                         }}
                         .header {{
-                          background-color: #007ace;
+                          background-color: #efeee7;
                           text-align: center;
                           padding: 20px;
-                          color: white;
+                          color: black;
                         }}
                         .header img {{
                           max-width: 100px; 
@@ -119,7 +120,7 @@ def send_reminders():
                         .cta a {{
                           text-decoration: none;
                           color: white;
-                          background-color: #007ace;
+                          background-color: black;
                           padding: 10px 20px;
                           border-radius: 4px;
                         }}
@@ -127,9 +128,23 @@ def send_reminders():
                           text-align: center;
                           margin: 10px 0;
                           font-size: 14px;
-                          background-color: #eef4fb;
-                          color: #007ace;
+                          background-color:white;
+                          color:black;
                           padding: 10px;
+                          border-radius: 4px;
+                          border: 2px dotted #efeee7; /* Dotted border */
+                          position: relative;
+                        }}
+                        .coupon::before {{
+                          content: "Pro Plan Only";
+                          position: absolute;
+                          top: -10px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background-color:transparent;
+                          color: black;
+                          font-size: 12px;
+                          padding: 2px 6px;
                           border-radius: 4px;
                         }}
                         .footer {{
@@ -144,7 +159,7 @@ def send_reminders():
                       <div class="email-container">
                         <div class="header">
                           <img src={placeholders["image_path"]} alt="Shop Logo" />
-                          
+                          <h1>${placeholders["shop"]}</h1>
                         </div>
                         <div class="content">
                           <p>Hello {placeholders["first_name"]},</p>
