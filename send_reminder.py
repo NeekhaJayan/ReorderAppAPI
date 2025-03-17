@@ -67,6 +67,7 @@ def send_reminders():
                                 "shop":shop.shop_name,
                                 "product_image":reminder.image_url,
                                 "quantity": reminder.product_quantity,
+                                "mail_to":shop.email,
                                 "remaining_days": shop.buffer_time,
                                 "reorder_url":f"https://{shop.shopify_domain}/checkouts/cn/Z2NwLWFzaWEtc291dGhlYXN0MTowMUpIMlRaVkJTNjExS1BTVlcwUkNRWkVCOA?discount=RESTOCK10",
                                 "image_path":f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}"
@@ -190,7 +191,7 @@ def send_reminders():
                         </div>
                         <div class="footer">
                           <p>Powered by ReOrder Reminder Pro</p>
-                          <p>Need help? <a href="mailto:support@yourstore.com">support@yourstore.com</a></p>
+                          <p>Need help? <a href="mailto:{placeholders["mail_to"]}">{placeholders["mail_to"]}</a></p>
                         </div>
                       </div>
                     </body>
