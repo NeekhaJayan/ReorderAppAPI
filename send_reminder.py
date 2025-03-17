@@ -159,7 +159,7 @@ def send_reminders():
                       <div class="email-container">
                         <div class="header">
                           <img src={placeholders["image_path"]} alt="Shop Logo" />
-                          <h1>${placeholders["shop"]}</h1>
+                          <h1>{placeholders["shop"]}</h1>
                         </div>
                         <div class="content">
                           <p>Hello {placeholders["first_name"]},</p>
