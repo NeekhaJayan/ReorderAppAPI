@@ -154,6 +154,26 @@ def send_reminders():
                           font-size: 12px;
                           color: #8c9196;
                         }}
+                        @media screen and (max-width: 600px) {{
+                        .product-section {{
+                          display: flex;
+                          flex-direction: column;
+                          align-items: center;
+                        }}
+  
+                      .product-section td {{
+                        display: block;
+                        width: 100%;
+                        text-align: center;
+                      }}
+
+                        .product-section td img {{
+                          max-width: 100%;
+                          height: auto;
+                          margin-bottom: 10px;
+                        }}
+                      }}
+
                       </style>
                     </head>
                     <body>
@@ -173,14 +193,16 @@ def send_reminders():
                                     width="200" height="auto"
                                     style="display: block; max-width: 200px; height: auto; border-radius: 4px;" />
                               </td>
-                              <td align="left" width="70%">
-                                      <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
-                                      <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
-                                      <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>
+                            </tr>
+                            <tr>
+                              <td align="left">
+                                <p><strong>Product Name:</strong> {placeholders["product_name"]}</p>
+                                <p><strong>Quantity Ordered:</strong> {placeholders["quantity"]}</p>
+                                <p><strong>Estimated Days Remaining:</strong> {placeholders["remaining_days"]}</p>
                               </td>
-                              
                             </tr>
                           </table>
+
 
                           <div class="cta">
                             <a href="{placeholders["reorder_url"]}" target="_blank">Reorder Now and Save 10%</a>
