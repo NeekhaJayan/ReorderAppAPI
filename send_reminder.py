@@ -301,16 +301,7 @@ def send_reminders():
                                             </table>
 
                                             <!-- Coupon Section -->
-                                            <table align="center">
-                                              <tr>
-                                                <td>
-                                                  <h3>SPECIAL OFFER</h3>
-                                                  <p>Use code <b>RESTOCK10</b> at checkout</p>
-                                                  <p>Save 10&#37; on your reorder</p>
-                                                  <p class="expiry">Valid until &#123;&#123;coupon_expiry_date&#125;&#125;</p>
-                                                </td>
-                                              </tr>
-                                            </table>
+                                            
                                           </td>
                                         </tr>
 
