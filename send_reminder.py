@@ -69,11 +69,12 @@ def send_reminders():
                                 "quantity": reminder.product_quantity,
                                 "mail_to":shop.email,
                                 "remaining_days": shop.buffer_time,
-                                "reorder_url":f"https://{shop.shopify_domain}/cart/clear?return_to=/cart/add?items[][id]={reminder_product.shopify_variant_id}&items[][quantity]={reminder.product_quantity}&return_to=/checkout",
+                                "reorder_url":f"https://{shop.shopify_domain}/cart/clear?return_to=/cart/add?items[][id]={reminder_product.shopify_variant_id}&items[][quantity]={reminder.product_quantity}",
                                 "image_path":f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}"
                                 }
                   
                   print(customer.first_name,message_template.fromname)
+                  print(placeholders["reorder_url"])
                   # email_template=f'''<!DOCTYPE html>
                   #   <html>
                   #   <head>
@@ -328,7 +329,7 @@ def send_reminders():
                 
                   reminder.status='Send'
                   db.commit()
-
+                 
                     
 
             except Exception as e:
