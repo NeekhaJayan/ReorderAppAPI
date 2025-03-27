@@ -17,9 +17,11 @@ class Shop(Base):
     coupon = Column(String, nullable=True)
     discountpercent= Column(String, nullable=True)
     order_flag=Column(Boolean, default=False)
+    plan = Column(String, nullable=True,default='Free')
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion
+
 
     customers = relationship("ShopCustomer", back_populates="shop", cascade="all, delete-orphan")
     orders = relationship("Orders", back_populates="shop", cascade="all, delete-orphan")
@@ -111,7 +113,6 @@ class Reminder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
-
     customer = relationship("ShopCustomer", back_populates="reminders")
     product = relationship("Products", back_populates="reminders")
 

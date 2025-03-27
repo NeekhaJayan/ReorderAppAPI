@@ -442,8 +442,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
 
 @router.patch("/shops/{shop_id}")
 async def update_shop(
-    shop_id: int,
-    shop: ShopCreate,
+    shop_id: int,plan:str,
     db: Session = Depends(get_db)
 ):
     # Fetch the existing shop by shop_id
@@ -452,19 +451,9 @@ async def update_shop(
     if not existing_shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     
-    # Update only the fields that are provided
-    if shop.shop_name:
-        existing_shop.shop_name = shop.shop_name
-    if shop.shopify_domain:
-        existing_shop.shopify_domain = shop.shopify_domain
-    if shop.shop_logo:
-        existing_shop.shop_logo = shop.shop_logo
-    if shop.email:
-        existing_shop.email = shop.email
-    if shop.message_template_id:
-        existing_shop.message_template_id = shop.message_template_id
-    
-    # Update the modified timestamp
+    # if shop.email:
+    #     existing_shop.email = shop.email
+    existing_shop.plan=plan
     existing_shop.modified_at = datetime.utcnow()
 
     # Commit the changes to the database
