@@ -3,14 +3,12 @@ from datetime import timedelta
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 import models
-# import requests
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
 from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME,send_email
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
-# from pydantic_settings import BaseSettings
 from datetime import datetime
 import pytz
 from dateutil import parser
@@ -18,6 +16,7 @@ import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 import os
 from botocore.client import BaseClient
+from fastapi.responses import RedirectResponse
 
 router = APIRouter(
     prefix="/auth",
@@ -96,6 +95,7 @@ class OrderPayload(BaseModel):
     billing_phone:Optional[str] = None
     line_items: List[LineItem]
     order_date: str
+    order_source:bool
 
 class DeletePayload(BaseModel):
     shop:str
@@ -441,10 +441,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     }
 
 @router.patch("/shops/{shop_id}")
-async def update_shop(
-    shop_id: int,plan:str,
-    db: Session = Depends(get_db)
-):
+async def update_shop(shop_id: int,plan:str, db: Session = Depends(get_db)):
     # Fetch the existing shop by shop_id
     existing_shop = db.query(Shop).filter(Shop.shop_id == shop_id).first()
     
@@ -526,7 +523,8 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
                     customer_id=customer.shop_customer_id,
                     order_date=order_date,  # Ensure datetime conversion
                     total_amount=line_item.price,
-                    status=line_item.status,  # Ensure 'status' exists in line_item
+                    status=line_item.status,
+                    order_source=order.order_source,  # Ensure 'status' exists in line_item
                 )
                 db.add(new_order)
                 db.commit()

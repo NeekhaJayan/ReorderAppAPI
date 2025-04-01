@@ -62,6 +62,12 @@ def send_reminders():
                           f"Skipping reminder {reminder.reminder_id}: Missing required data."
                       )
                       continue
+
+                  if shop.plan=='Free':
+                    url=f"https://reorder-shopify-app.onrender.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
+                  else:
+                    url=f"https://reorder-shopify-app.onrender.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&coupon={shop.coupon}"
+                  print(url)
                   placeholders={"first_name": customer.first_name,
                                 "product_name": reminder.product_title,
                                 "shop":shop.shop_name,
@@ -69,12 +75,12 @@ def send_reminders():
                                 "quantity": reminder.product_quantity,
                                 "mail_to":shop.email,
                                 "remaining_days": shop.buffer_time,
-                                "reorder_url":f"https://{shop.shopify_domain}/cart/add?items[][id]={reminder_product.shopify_variant_id}&items[][quantity]={reminder.product_quantity}&return_to=/checkout",
+                                "reorder_url":url,
                                 "image_path":f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}"
                                 }
                   # https://deca-development-store.myshopify.com/cart/clear?return_to=/cart/add?items[][id]=42034558533741&items[][quantity]=1&return_to=/checkout?discount=EXTRA5
                   print(customer.first_name,message_template.fromname)
-                  print(placeholders["reorder_url"])
+                  print(url)
                   print(placeholders["image_path"])
                   # email_template=f'''<!DOCTYPE html>
                   #   <html>

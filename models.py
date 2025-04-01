@@ -71,6 +71,7 @@ class Orders(Base):
     order_date = Column(DateTime, index=True)  # Date should be a DateTime
     total_amount = Column(Float, index=True)  # Total amount as float
     status = Column(String, index=True)  # Order status as a string
+    order_source=Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
