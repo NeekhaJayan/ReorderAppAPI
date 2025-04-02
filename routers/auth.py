@@ -401,6 +401,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
         "shop_id": shop.shop_id,
         "buffer_time":shop.buffer_time,
         "email":shop.email,
+        "template_id":shop.message_template_id,
     }
 
 @router.patch("/shops/{shop_id}")
@@ -694,21 +695,22 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         
         db.commit()
         db.refresh(shop)
-        configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key['api-key'] =API_KEY 
-        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-        # sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
-        email_data = sib_api_v3_sdk.SendSmtpEmail(
-            to=[{"email": shop.email}],
-            sender={"name": emailTemplateSettings.fromName,"email": emailTemplateSettings.fromEmail},
-            subject=f"Test Mail: {emailTemplateSettings.subject}",
-            html_content=html_content
-        )
-        try:
-            api_instance.send_transac_email(email_data)
+        # -------Test Email Settings----
+        # configuration = sib_api_v3_sdk.Configuration()
+        # configuration.api_key['api-key'] =API_KEY 
+        # api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+        # # sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
+        # email_data = sib_api_v3_sdk.SendSmtpEmail(
+        #     to=[{"email": shop.email}],
+        #     sender={"name": emailTemplateSettings.fromName,"email": emailTemplateSettings.fromEmail},
+        #     subject=f"Test Mail: {emailTemplateSettings.subject}",
+        #     html_content=html_content
+        # )
+        # try:
+        #     api_instance.send_transac_email(email_data)
             
-        except ApiException as e:
-            print(f"Error sending email: {e}")
+        # except ApiException as e:
+        #     print(f"Error sending email: {e}")
         return {"Your email template has been saved successfully! All future reminders will use this updated template to engage your customers." }
 
     else:
