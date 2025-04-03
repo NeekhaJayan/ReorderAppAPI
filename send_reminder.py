@@ -225,6 +225,28 @@ def send_reminders():
                   #   </body>
                   #   </html>'''
                   #  print(email_template)
+                  coupon_section = """
+                                    <tr>
+                                      <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
+                                        <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
+                                        <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">{shop.coupon}</span> at checkout</p>
+                                        <p style="font-size:16px;">Save {shop.discountpercent}% on your reorder</p>
+                                      </td>
+                                    </tr>
+                                    """ if shop.coupon else ""
+                  logo_image_section =f"""
+                                        <tr>
+                                                <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
+                                                  <img src="{placeholders["image_path"]}" alt="{placeholders["shop"]}" width="120" style="display:block;">
+                                                  <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
+                                                </td>
+                                              </tr> """ if shop.shop_logo else f"""
+                                              <tr>
+                                                <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
+                                                  <h1 style="font-size:30px; color:#333333; font-family:Arial, sans-serif;">{placeholders["shop"]}</h1>
+                                                  <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
+                                                </td>
+                                              </tr> """
                   email_template=f'''<!DOCTYPE html>
                                     <html>
                                     <head>
@@ -237,12 +259,7 @@ def send_reminders():
                                           <td align="center">
                                             <table role="presentation" width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto; padding:20px; border-radius:8px;">
                                               
-                                              <tr>
-                                                <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
-                                                  <img src="{placeholders["image_path"]}" alt="{placeholders["shop"]}" width="120" style="display:block;">
-                                                  <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
-                                                </td>
-                                              </tr>
+                                              {logo_image_section}
                                               
                                               <tr>
                                                 <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
@@ -272,13 +289,7 @@ def send_reminders():
                                                 </td>
                                               </tr>
 
-                                              <tr>
-                                                <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
-                                                  <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
-                                                  <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">RESTOCK10</span> at checkout</p>
-                                                  <p style="font-size:16px;">Save 10% on your reorder</p>
-                                                </td>
-                                              </tr>
+                                              {coupon_section}
 
                                               <tr>
                                                 <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
