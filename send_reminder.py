@@ -225,7 +225,7 @@ def send_reminders():
                   #   </body>
                   #   </html>'''
                   #  print(email_template)
-                  coupon_section = """
+                  coupon_section = f"""
                                     <tr>
                                       <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
                                         <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
@@ -233,7 +233,7 @@ def send_reminders():
                                         <p style="font-size:16px;">Save {shop.discountpercent}% on your reorder</p>
                                       </td>
                                     </tr>
-                                    """ if shop.coupon else ""
+                                    """ if shop.coupon else f""
                   logo_image_section =f"""
                                         <tr>
                                                 <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
