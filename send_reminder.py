@@ -10,7 +10,10 @@ app = FastAPI()
 
 
 AWS_BUCKET=os.getenv("AWS_BUCKET")
-AWS_REGION_NAME=os.getenv("AWS_REGION_NAME")
+AWS_REGION=os.getenv("AWS_REGION_NAME")
+# AWS_REGION = "ap-south-1"
+
+
 
 def send_reminders():
     # Create a database session
@@ -76,7 +79,7 @@ def send_reminders():
                                 "mail_to":shop.email,
                                 "remaining_days": shop.buffer_time,
                                 "reorder_url":url,
-                                "image_path":f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}"
+                                "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}"
                                 }
                   # https://deca-development-store.myshopify.com/cart/clear?return_to=/cart/add?items[][id]=42034558533741&items[][quantity]=1&return_to=/checkout?discount=EXTRA5
                   print(customer.first_name,message_template.fromname)

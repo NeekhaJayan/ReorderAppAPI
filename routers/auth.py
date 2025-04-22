@@ -4,7 +4,7 @@ from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 import models
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
-from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION_NAME,send_email
+from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION,send_email
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from database import engine ,get_db
@@ -731,7 +731,7 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
         # url = s3.generate_presigned_url(
         #      client_action, Params={"Bucket": AWS_BUCKET, "Key": s3_path}, ExpiresIn = 3600
         # )
-        url = f"https://s3.{AWS_REGION_NAME}.amazonaws.com/{AWS_BUCKET}/{s3_path}"
+        url = f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{s3_path}"
     
 
     # General settings
