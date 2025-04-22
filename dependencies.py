@@ -61,7 +61,7 @@ def send_email(to, subject, body, sender_email,sender_name):
                     'Data': subject,
                 },
             },
-            Source=send_email,
+            Source=sender_email,
             # If you are not using a configuration set, comment or delete the
             # following line
             ConfigurationSetName=CONFIGURATION_SET,
