@@ -12,3 +12,5 @@ sib-api-v3-sdk==7.6.0
 boto3==1.33.9
 botocore==1.33.9
 python-dotenv==1.0.0
+jinja2==3.1.6
+MarkupSafe==3.0.2
