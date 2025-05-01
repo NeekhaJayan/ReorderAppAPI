@@ -118,77 +118,158 @@ class EmailTemplateSettings(BaseModel):
 
 
 HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-</head>
-<body style="margin:0; padding:0; background-color:#f4f4f4;">
-    <table role="presentation" width="100%" bgcolor="#f4f4f4" cellpadding="0" cellspacing="0" border="0">
-    <tr>
-        <td align="center">
-        <table role="presentation" width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto; padding:20px; border-radius:8px;">
-            
-            <tr>
-            <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
-                <img src="{product_image}" alt="{shop}" width="120" style="display:block;">
-                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
-            </td>
-            </tr>
-            
-            <tr>
-            <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
-                <p style="font-size:16px;">Hello {first_name},</p>
-                <p style="font-size:16px;">We noticed it's been <b>{remaining_days}</b> days since you purchased <b>{product_name}</b>. You might be running low!</p>
-                <p style="font-size:16px;">Don't wait until you run out! Restock now and keep enjoying your favorite products.</p>
-            </td>
-            </tr>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                </head>
+                <body style="margin:0; padding:0; background-color:#f4f4f4;">
+                    <table role="presentation" width="100%" bgcolor="#f4f4f4" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td align="center">
+                        <table role="presentation" width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto; padding:20px; border-radius:8px;">
+                            
+                            <tr>
+                            <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
+                                <img src="{product_image}" alt="{shop}" width="120" style="display:block;">
+                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
+                            </td>
+                            </tr>
+                            
+                            <tr>
+                            <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
+                                <p style="font-size:16px;">Hello {first_name},</p>
+                                <p style="font-size:16px;">We noticed it's been <b>{remaining_days}</b> days since you purchased <b>{product_name}</b>. You might be running low!</p>
+                                <p style="font-size:16px;">Don't wait until you run out! Restock now and keep enjoying your favorite products.</p>
+                            </td>
+                            </tr>
 
-            <tr>
-            <td align="center" style="padding:10px;">
-                <img src="{product_image}" alt="{product_name}" width="150" style="display:block; margin:0 auto; border-radius:5px;">
-            </td>
-            </tr>
-            <tr>
-            <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
-                <h3 style="font-size:18px; color:#333333;">{product_name}</h3>
-                <p style="font-size:14px;"><b>Quantity:</b> {quantity}</p>
-            </td>
-            </tr>
+                            <tr>
+                            <td align="center" style="padding:10px;">
+                                <img src="{product_image}" alt="{product_name}" width="150" style="display:block; margin:0 auto; border-radius:5px;">
+                            </td>
+                            </tr>
+                            <tr>
+                            <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
+                                <h3 style="font-size:18px; color:#333333;">{product_name}</h3>
+                                <p style="font-size:14px;"><b>Quantity:</b> {quantity}</p>
+                            </td>
+                            </tr>
 
-            <tr>
-            <td align="center" style="padding:20px;">
-                <a href="{reorder_url}" target="_blank" style="display:inline-block; padding:12px 20px; background-color:#007bff; color:#ffffff; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
-                REORDER NOW
-                </a>
-            </td>
-            </tr>
+                            <tr>
+                            <td align="center" style="padding:20px;">
+                                <a href="{reorder_url}" target="_blank" style="display:inline-block; padding:12px 20px; background-color:#007bff; color:#ffffff; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
+                                REORDER NOW
+                                </a>
+                            </td>
+                            </tr>
 
-            <tr>
-            <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
-                <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
-                <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">RESTOCK10</span> at checkout</p>
-                <p style="font-size:16px;">Save 10% on your reorder</p>
-            </td>
-            </tr>
+                            <tr>
+                            <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
+                                <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
+                                <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">RESTOCK10</span> at checkout</p>
+                                <p style="font-size:16px;">Save 10% on your reorder</p>
+                            </td>
+                            </tr>
 
-            <tr>
-            <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
-                <p>{shop} | {email} </p>
-                <p>Powered by <b>ReOrder Reminder Pro</b></p>
-            </td>
-            </tr>
+                            <tr>
+                            <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
+                                <p>{shop} | {email} </p>
+                                <p>Powered by <b>ReOrder Reminder Pro</b></p>
+                            </td>
+                            </tr>
 
-        </table>
-        </td>
-    </tr>
-    </table>
-</body>
-</html>
+                        </table>
+                        </td>
+                    </tr>
+                    </table>
+                </body>
+                </html>
 
-"""
+                """
 
+DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
+                    <html>
+                    <head>
+                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    </head>
+                    <body style="margin:0; padding:0; background-color:#f4f4f4;">
+                    <table role="presentation" width="100%" bgcolor="#f4f4f4" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                        <td align="center">
+                            <table role="presentation" width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto; padding:20px; border-radius:8px;">
+
+                            {% if image_path %}
+                            <tr>
+                                <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
+                                <img src="{{ image_path }}" alt="{{ shop }}" width="120" style="display:block;">
+                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
+                                <h1 style="font-size:30px; color:#333333; font-family:Arial, sans-serif;">{{ shop }}</h1>
+                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
+                                </td>
+                            </tr>
+                            {% endif %}
+
+                            <tr>
+                                <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
+                                <p style="font-size:16px;">Hello {{ first_name }},</p>
+                                <p style="font-size:16px;">We noticed it's been <b>{{ remaining_days }}</b> days since you purchased <b>{{ product_name }}</b>. You might be running low!</p>
+                                <p style="font-size:16px;">Don't wait until you run out! Restock now and keep enjoying your favorite products.</p>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td align="center" style="padding:10px;">
+                                <img src="{{ product_image }}" alt="{{ product_name }}" width="150" style="display:block; margin:0 auto; border-radius:5px;">
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
+                                <h3 style="font-size:18px; color:#333333;">{{ product_name }}</h3>
+                                <p style="font-size:14px;"><b>Quantity:</b> {{ quantity }}</p>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td align="center" style="padding:20px;">
+                                <a href="{{ reorder_url }}" target="_blank" style="display:inline-block; padding:12px 20px; background-color:#007bff; color:#ffffff; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
+                                    REORDER NOW
+                                </a>
+                                </td>
+                            </tr>
+
+                            {% if plan == "Pro" and coupon %}
+                            <tr>
+                                <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
+                                <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
+                                <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">{{ coupon }}</span> at checkout</p>
+                                <p style="font-size:16px;">Save {{ discountpercent }}% on your reorder</p>
+                                </td>
+                            </tr>
+                            {% endif %}
+
+                            <tr>
+                                <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
+                                <p>{{ shop }} | {{ mail_to }}</p>
+                                <p>Powered by <b>ReOrder Reminder Pro</b></p>
+                                </td>
+                            </tr>
+
+                            </table>
+                        </td>
+                        </tr>
+                    </table>
+                    </body>
+                    </html>
+                    """
 from fastapi import FastAPI, Depends
 
 app = FastAPI()
@@ -668,6 +749,7 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
                                         fromname = emailTemplateSettings.fromName,
                                         fromemail=emailTemplateSettings.fromEmail,
                                         subject = emailTemplateSettings.subject,
+                                        body_template=DEFAULT_EMAIL_TEMPLATE,
                                         created_at=datetime.utcnow(),
                                         modified_at=datetime.utcnow(),
                                         )

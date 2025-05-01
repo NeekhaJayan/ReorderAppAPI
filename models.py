@@ -128,6 +128,7 @@ class Message_Template(Base):
     fromname = Column(String, index=True)
     fromemail= Column(String, index=True)
     subject = Column(String, index=True)
+    body_template=Column(String,index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)
