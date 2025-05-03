@@ -1057,7 +1057,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
                         to=shop.email,
                         subject="Notification: Product Deletion and Impact on Reorder Emails",
                         body=email_template,
-                        sender_email="ReorderPro",
+                        sender_email="ReOrderReminderPro@decagrowth.com",
                         sender_name=shop.shop_name
                     )
                 except Exception as e:
