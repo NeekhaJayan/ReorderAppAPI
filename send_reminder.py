@@ -69,9 +69,9 @@ def send_reminders():
                       continue
 
                   if shop.plan=='Free':
-                    url=f"https://reorder-shopify-app.onrender.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
+                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
                   else:
-                    url=f"https://reorder-shopify-app.onrender.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&coupon={shop.coupon}"
+                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&coupon={shop.coupon}"
                   print(url)
                   placeholders={"first_name": customer.first_name,
                                 "product_name": reminder.product_title,
