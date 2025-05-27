@@ -259,7 +259,9 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                             <tr>
                                 <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
                                 <p>{{ shop }} | {{ mail_to }}</p>
-                                <p>Powered by <b>ReOrder Reminder Pro</b></p>
+                                {% if plan != "PRO" %}
+                                <p>Powered by <b><a href="mailto:ReOrderReminderPro@decagrowth.com">ReOrder Reminder Pro</a></b></p>
+                                {% endif %}
                                 </td>
                             </tr>
 
