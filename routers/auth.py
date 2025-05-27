@@ -234,7 +234,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                             <tr>
                                 <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
                                 <h3 style="font-size:18px; color:#333333;">{{ product_name }}</h3>
-                                <p style="font-size:14px;"><b>Quantity:</b> {{ quantity }}</p>
+                                
                                 </td>
                             </tr>
 
@@ -246,7 +246,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                                 </td>
                             </tr>
 
-                            {% if plan == "Pro" and coupon %}
+                            {% if plan == "PRO" and coupon %}
                             <tr>
                                 <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
                                 <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
