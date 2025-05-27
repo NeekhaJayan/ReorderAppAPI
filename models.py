@@ -111,7 +111,6 @@ class Reminder(Base):
     product_title=Column(String,index=True)
     product_quantity=Column(Integer, index=True) 
     image_url=Column(String,index=True)
-    reminder_days=Column(Integer, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)

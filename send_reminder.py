@@ -73,13 +73,14 @@ def send_reminders():
                   else:
                     url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&coupon={shop.coupon}"
                   print(url)
+                  reminder_days = (reminder.product_quantity * int(reminder_product.reorder_days)) - int(shop.buffer_time)
                   placeholders={"first_name": customer.first_name,
                                 "product_name": reminder.product_title,
                                 "shop":shop.shop_name,
                                 "product_image":reminder.image_url,
                                 "quantity": reminder.product_quantity,
                                 "mail_to":shop.email,
-                                "remaining_days": reminder.remaining_days,
+                                "remaining_days": reminder_days,
                                 "reorder_url":url,
                                 "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}",
                                 "shop": shop.shop_name,
