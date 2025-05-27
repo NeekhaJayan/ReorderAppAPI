@@ -79,7 +79,7 @@ def send_reminders():
                                 "product_image":reminder.image_url,
                                 "quantity": reminder.product_quantity,
                                 "mail_to":shop.email,
-                                "remaining_days": shop.buffer_time,
+                                "remaining_days": reminder.remaining_days,
                                 "reorder_url":url,
                                 "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}",
                                 "shop": shop.shop_name,
