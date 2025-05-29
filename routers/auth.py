@@ -251,7 +251,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                                 <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
                                 <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
                                 <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">{{ coupon }}</span> at checkout</p>
-                                <p style="font-size:16px;">Save {{ discountpercent }}% on your reorder</p>
+                                <p style="font-size:16px;">{{ discountpercent }}</p>
                                 </td>
                             </tr>
                             {% endif %}
