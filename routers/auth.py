@@ -773,11 +773,9 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
 
         if emailTemplateSettings.bufferTime:
             shop.buffer_time=emailTemplateSettings.bufferTime
-        if emailTemplateSettings.coupon:
-            shop.coupon=emailTemplateSettings.coupon
+        shop.coupon=emailTemplateSettings.coupon
 
-        if emailTemplateSettings.discountPercent:
-            shop.discountpercent=emailTemplateSettings.discountPercent
+        shop.discountpercent=emailTemplateSettings.discountPercent
         
         
         db.commit()
