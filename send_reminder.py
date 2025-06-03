@@ -22,7 +22,7 @@ def send_reminders():
     db = SessionLocal()
     try:
         today = datetime.utcnow().date()
-        print(today)
+        print(datetime.utcnow())
         reminders = (
             db.query(Reminder)
             .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False ,Reminder.status=="Pending")
