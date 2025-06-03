@@ -21,7 +21,7 @@ def send_reminders():
     # Create a database session
     db = SessionLocal()
     try:
-        today = datetime.now().date()
+        today = datetime.utcnow().date()
         print(today)
         reminders = (
             db.query(Reminder)
