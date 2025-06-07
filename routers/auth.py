@@ -17,6 +17,8 @@ from sib_api_v3_sdk.rest import ApiException
 import os
 from botocore.client import BaseClient
 from fastapi.responses import RedirectResponse
+from jinja2 import Template
+
 
 router = APIRouter(
     prefix="/auth",
