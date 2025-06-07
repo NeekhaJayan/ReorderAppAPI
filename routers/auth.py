@@ -1107,14 +1107,14 @@ async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db
 async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session=Depends(get_db)):
     
     try:
-        shop = (db.query(Shop).filter(Shop.shopify_domain ==shop_id, Shop.is_deleted == False).first())
+        shop = (db.query(Shop).filter(Shop.shop_id ==shop_id, Shop.is_deleted == False).first())
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         message_template = (db.query(Message_Template).filter(Message_Template.shop_name == shop.shopify_domain,Message_Template.is_deleted == False,).first())
         if not message_template:
             raise HTTPException(status_code=404, detail="Message template not found")
 
-        reminder_product=db.query(Products).filter((Products.product_id==product_id)&(Product.variant_id==variant_id)&(Products.is_deleted==False)).first()
+        reminder_product=db.query(Products).filter((Products.product_id==product_id)&(Product.variant_id==variant_id)&(Products.shop_id == shop_id)&(Products.is_deleted==False)).first()
         if not reminder_product:
             raise HTTPException(status_code=404, detail="Product not found")
         quantity=1
