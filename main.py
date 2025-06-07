@@ -7,11 +7,7 @@ from starlette import status
 
 app = FastAPI()
 origins = [
-    "http://127.0.0.1:8000",
-    "http://localhost:3000",
-    "https://characteristic-tunnel-uniprotkb-bind.trycloudflare.com",
-    "http://127.0.0.1:8000/auth/shopify",
-    "https://deca-development-store.myshopify.com","https://deca-development-store.myshopify.com/admin/oauth/authorize"
+    "https://rrpapp.decagrowth.com"
 ]
 # Allow CORS for React frontend
 app.add_middleware(
