@@ -1125,7 +1125,7 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
         else:
             url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}&discount={shop.coupon}"
         reminder_days = (1 * int(reminder_product.reorder_days)) - int(shop.buffer_time)
-        placeholders={"first_name": "",
+        placeholders={"first_name": shop.shop_name,
                         "product_name": reminder_product.title,
                         "shop":shop.shop_name,
                         "product_image":reminder_product.image_url,
