@@ -1150,7 +1150,7 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
                       sender_email=message_template.fromemail,
                       sender_name=message_template.fromname
                   )
-        return {"message": "Email sent successfully"}
+        return {"message": f"Your test email has been sent successfully to {shop.email}"}
     except ApiException as e:
         print(f"Error sending email: {e}")
 
