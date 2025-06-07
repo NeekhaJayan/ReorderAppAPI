@@ -1114,7 +1114,7 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
         if not message_template:
             raise HTTPException(status_code=404, detail="Message template not found")
 
-        reminder_product=db.query(Products).filter((Products.product_id==product_id)&(Product.variant_id==variant_id)&(Products.shop_id == shop_id)&(Products.is_deleted==False)).first()
+        reminder_product=db.query(Products).filter((Products.product_id==product_id)&(Products.variant_id==variant_id)&(Products.shop_id == shop_id)&(Products.is_deleted==False)).first()
         if not reminder_product:
             raise HTTPException(status_code=404, detail="Product not found")
         quantity=1
