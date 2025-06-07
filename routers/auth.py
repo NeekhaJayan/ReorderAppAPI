@@ -1103,4 +1103,52 @@ async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Fetch Failed: {e}")
 
+@router.post("/test-email-reminder")
+async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session=Depends(get_db)):
+    
+    try:
+        shop = (db.query(Shop).filter(Shop.shopify_domain ==shop_id, Shop.is_deleted == False).first())
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+        message_template = (db.query(Message_Template).filter(Message_Template.shop_name == shop.shopify_domain,Message_Template.is_deleted == False,).first())
+        if not message_template:
+            raise HTTPException(status_code=404, detail="Message template not found")
+
+        reminder_product=db.query(Products).filter((Products.product_id==product_id)&(Product.variant_id==variant_id)&(Products.is_deleted==False)).first()
+        if not reminder_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        quantity=1
+        if shop.plan=='Free':
+            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}"
+            else:
+            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}&discount={shop.coupon}"
+        reminder_days = (1 * int(reminder_product.reorder_days)) - int(shop.buffer_time)
+        placeholders={"first_name": "",
+                        "product_name": reminder_product.product_title,
+                        "shop":shop.shop_name,
+                        "product_image":reminder_product.image_url,
+                        "quantity": quantity,
+                        "mail_to":shop.email,
+                        "remaining_days": reminder_days,
+                        "reorder_url":url,
+                        "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}",
+                        "shop": shop.shop_name,
+                        "plan": shop.plan,
+                        "coupon": shop.coupon or "",
+                        "discountpercent": shop.discountpercent or "0"
+
+                                }          
+        template_str = message_template.body_template
+        template = Template(template_str)
+        email_template = template.render(**placeholders)
+        send_email(
+                      to=shop.email,
+                      subject=message_template.subject,
+                      body=email_template,
+                      sender_email=message_template.fromemail,
+                      sender_name=message_template.fromname
+                  )
+        return {"message": "Email sent successfully"}
+    except ApiException as e:
+        print(f"Error sending email: {e}")
 
