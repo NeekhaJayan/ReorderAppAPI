@@ -34,7 +34,7 @@ BUCKET=s3_resource.Bucket(AWS_BUCKET)
 #     except ApiException as e:
 #         print(f"Error sending email: {e}")
 
-def send_email(to, subject, body, sender_email,sender_name):
+def send_email(to, subject, body, sender_email,sender_name,reply_to):
     CONFIGURATION_SET = "my-first-configuration-set"
     SENDER=f'{sender_name}<{sender_email}>'
     CHARSET = "UTF-8"
@@ -62,6 +62,7 @@ def send_email(to, subject, body, sender_email,sender_name):
                 },
             },
             Source=SENDER,
+            ReplyToAddresses=[reply_to], 
             # If you are not using a configuration set, comment or delete the
             # following line
             ConfigurationSetName=CONFIGURATION_SET,
