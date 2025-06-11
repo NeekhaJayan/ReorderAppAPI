@@ -1145,7 +1145,7 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
         email_template = template.render(**placeholders)
         send_email(
                       to=shop.email,
-                      subject=message_template.subject,
+                      subject=f"{message_template.subject}-Test Mail",
                       body=email_template,
                       sender_email="ReOrderReminderPro@decagrowth.com",
                       sender_name=message_template.fromname,
