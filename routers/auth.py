@@ -733,6 +733,8 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
                             "first_name": "John",
                             "product_name": "Widget Pro",
                             "product_image": "https://via.placeholder.com/150x150.png?text=Widget+Pro",
+                            "quantity": "2",
+                            "remaining_days": "5",
                             "reorder_url": "https://yourshop.com/reorder/widget-pro",
                             "shop":shop.shop_name,
                             "email":shop.email,
