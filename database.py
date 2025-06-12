@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-SQLALCHEMY_DATABASE_URL = "postgresql://db_nursement_user:qh0pQoOXf66DK0d5LUyKSLHYYoze5xpZ@dpg-cle36h6f27hc738pm570-a.singapore-postgres.render.com/db_nursement"
+SQLALCHEMY_DATABASE_URL = "postgresql://db_nursement_user:qh0pQoOXf66DK0d5LUyKSLHYYoze5xpZ@dpg-cle36h6f27hc738pm570-a.singapore-postgres.render.com/db_reorder_reminder_pro"
 engine=create_engine(SQLALCHEMY_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
