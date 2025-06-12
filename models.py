@@ -122,7 +122,7 @@ class Message_Template(Base):
 
     message_template_id = Column(Integer, primary_key=True, index=True)
     message_template = Column(String, index=True)
-    message_channel = Column(Integer, index=True)
+    message_channel = Column(String, index=True)
     mail_server = Column(String, index=True)
     port=Column(Integer, index=True)
     fromname = Column(String, index=True)
