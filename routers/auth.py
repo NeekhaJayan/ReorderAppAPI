@@ -235,7 +235,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
 
                             <tr>
                                 <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
-                                <p style="font-size:16px;">To make sure you don’t run out, you can easily reorder it here:</p>
+                                <p style="font-size:16px;">To make sure you don't run out, you can easily reorder it here:</p>
                                 
                                 </td>
                             </tr>
