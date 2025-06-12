@@ -102,7 +102,7 @@ def send_reminders():
                       to=customer.email,
                       subject=message_template.subject,
                       body=email_template,
-                      sender_email="ReOrderReminderPro@decagrowth.com",
+                      sender_email=f"{shop.shop_name}@decagrowth.com"
                       sender_name=message_template.fromname,
                       reply_to=message_template.fromemail,
                   )
