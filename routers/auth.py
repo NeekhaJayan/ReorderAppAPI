@@ -222,8 +222,8 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                             <tr>
                                 <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
                                 <p style="font-size:16px;">Hello {{ first_name }},</p>
-                                <p style="font-size:16px;">We noticed it's been <b>{{ remaining_days }}</b> days since you purchased <b>{{ product_name }}</b>. You might be running low!</p>
-                                <p style="font-size:16px;">Don't wait until you run out! Restock now and keep enjoying your favorite products.</p>
+                                <p style="font-size:16px;">Just a quick reminder - based on your last purchase, you might be running low on <b>{{ product_name }}</b>.</p>
+                                
                                 </td>
                             </tr>
 
@@ -235,7 +235,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
 
                             <tr>
                                 <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
-                                <h3 style="font-size:18px; color:#333333;">{{ product_name }}</h3>
+                                <p style="font-size:16px;">To make sure you don’t run out, you can easily reorder it here:</p>
                                 
                                 </td>
                             </tr>
@@ -261,9 +261,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                             <tr>
                                 <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
                                 <p>{{ shop }} | {{ mail_to }}</p>
-                                {% if plan != "PRO" %}
-                                <p>Powered by <b><a href="mailto:ReOrderReminderPro@decagrowth.com">ReOrder Reminder Pro</a></b></p>
-                                {% endif %}
+                                
                                 </td>
                             </tr>
 
