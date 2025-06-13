@@ -192,7 +192,7 @@ HTML_TEMPLATE = """
                 """
 
 DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
-                    <html>
+                    <html lang="en">
                     <head>
                     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
                     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -207,14 +207,12 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                             <tr>
                                 <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
                                 <img src="{{ image_path }}" alt="{{ shop }}" width="120" style="display:block;">
-                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
                                 <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
                                 <h1 style="font-size:30px; color:#333333; font-family:Arial, sans-serif;">{{ shop }}</h1>
-                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
                                 </td>
                             </tr>
                             {% endif %}
