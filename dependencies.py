@@ -34,39 +34,56 @@ BUCKET=s3_resource.Bucket(AWS_BUCKET)
 #     except ApiException as e:
 #         print(f"Error sending email: {e}")
 
-def send_email(to, subject, body, sender_email,sender_name,reply_to):
+def send_email(to, subject,html_body, plain_body, sender_email,sender_name,reply_to):
     CONFIGURATION_SET = "my-first-configuration-set"
     SENDER=f'{sender_name}<{sender_email}>'
     CHARSET = "UTF-8"
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = SENDER
+    msg['To'] = to
+    msg['Reply-To'] = reply_to
+
+    msg.attach(MIMEText(plain_body, 'plain', CHARSET))
+    msg.attach(MIMEText(html_body, 'html', CHARSET))
+    
     client = boto3.client('ses',region_name=AWS_REGION,aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     try:
     #Provide the contents of the email.
-        response = client.send_email(
-            Destination={
-                'ToAddresses': [
-                    to,
-                ],
-            },
-            Message={
-                'Body': {
-                    'Html': {
-                        'Charset': CHARSET,
-                        'Data': body,
-                    },
+        # response = client.send_email(
+        #     Destination={
+        #         'ToAddresses': [
+        #             to,
+        #         ],
+        #     },
+        #     Message={
+        #         'Body': {
+        #             'Html': {
+        #                 'Charset': CHARSET,
+        #                 'Data': body,
+        #             },
                     
-                },
-                'Subject': {
-                    'Charset': CHARSET,
-                    'Data': subject,
-                },
-            },
+        #         },
+        #         'Subject': {
+        #             'Charset': CHARSET,
+        #             'Data': subject,
+        #         },
+        #     },
+        #     Source=SENDER,
+        #     ReplyToAddresses=[reply_to], 
+        #     # If you are not using a configuration set, comment or delete the
+        #     # following line
+        #     ConfigurationSetName=CONFIGURATION_SET,
+        # )
+        response = client.send_raw_email(
             Source=SENDER,
-            ReplyToAddresses=[reply_to], 
-            # If you are not using a configuration set, comment or delete the
-            # following line
-            ConfigurationSetName=CONFIGURATION_SET,
+            Destinations=[to],
+            RawMessage={'Data': msg.as_string()},
+            ConfigurationSetName=CONFIGURATION_SET
         )
+        print("Email sent! Message ID:", response['MessageId'])
 # Display an error if something goes wrong.	
     except ClientError as e:
         print(e.response['Error']['Message'])
