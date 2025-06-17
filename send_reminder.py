@@ -96,12 +96,19 @@ def send_reminders():
                   template_str = message_template.body_template
                   template = Template(template_str)
                   email_template = template.render(**placeholders)
-                  
                   senderName =shop.shop_name
+                  text_template = """ Hi {{ first_name }},\n
+            Just a quick reminder - based on your last purchase, you might be running low on {{ product_name }}.\n
+            Reorder here: {{ reorder_url }}\n
+            {% if plan == "PRO" and coupon %}Use coupon code {{ coupon }} - {{ discountpercent }}{% endif %}\n
+            {{ shop }} | {{ mail_to }} """
+
+                  email_text = Template(text_template).render(**placeholders)
                   send_email(
                       to=customer.email,
                       subject=message_template.subject,
-                      body=email_template,
+                      html_body=email_template,
+                      plain_body=email_text,
                       sender_email="ReOrderReminderPro@decagrowth.com",
                       sender_name=message_template.fromname,
                       reply_to=message_template.fromemail,
