@@ -6,7 +6,15 @@ from sqlalchemy.orm import sessionmaker
 
 
 SQLALCHEMY_DATABASE_URL = "postgresql://db_nursement_user:qh0pQoOXf66DK0d5LUyKSLHYYoze5xpZ@dpg-cle36h6f27hc738pm570-a.singapore-postgres.render.com/db_reorder_reminder_pro"
-engine=create_engine(SQLALCHEMY_DATABASE_URL)
+# engine=create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=10,            # Number of persistent connections
+    max_overflow=20,         # Extra connections if pool is full
+    pool_timeout=30,         # Max wait time for a connection
+    pool_recycle=280,        # Recycle connections before idle timeout (~5 min safe default)
+    pool_pre_ping=True,      # Check if connection is alive before using it
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
