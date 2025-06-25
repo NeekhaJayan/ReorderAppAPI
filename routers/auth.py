@@ -451,17 +451,17 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
 
 @router.post("/shops")
 async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
-    
+
     # Check if shop already exists by domain or email
     existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
     if existing_shop:
-        return {"message": "Shop Already Created", "shop_id": shop.shop_id,
-                "buffer_time":shop.buffer_time,
-                "email":shop.email,
-                "template_id":shop.message_template_id,
-                "logo":shop.shop_logo,
-                "coupon":shop.coupon,
-                "discount":shop.discountpercent}
+        return {"message": "Shop Already Created", "shop_id": existing_shop.shop_id,
+                "buffer_time":existing_shop.buffer_time,
+                "email":existing_shop.email,
+                "template_id":existing_shop.message_template_id,
+                "logo":existing_shop.shop_logo,
+                "coupon":existing_shop.coupon,
+                "discount":existing_shop.discountpercent}
     
     # Create a new Shop instance
     new_shop = Shop(
