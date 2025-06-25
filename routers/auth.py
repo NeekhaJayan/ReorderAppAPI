@@ -476,13 +476,13 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_shop)
     return {"message": "Shop created successfully",
-            "shop_id": shop.shop_id,
-            "buffer_time":shop.buffer_time,
-            "email":shop.email,
-            "template_id":shop.message_template_id,
-            "logo":shop.shop_logo,
-            "coupon":shop.coupon,
-            "discount":shop.discountpercent
+            "shop_id": new_shop.shop_id,
+            "buffer_time":new_shop.buffer_time,
+            "email":new_shop.email,
+            "template_id":new_shop.message_template_id,
+            "logo":new_shop.shop_logo,
+            "coupon":new_shop.coupon,
+            "discount":new_shop.discountpercent
             }
 
 
