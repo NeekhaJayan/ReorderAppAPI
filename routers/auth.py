@@ -505,7 +505,8 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
         "template_id":shop.message_template_id,
         "logo":shop.shop_logo,
         "coupon":shop.coupon,
-        "discount":shop.discountpercent
+        "discount":shop.discountpercent,
+        "createdAt":shop.created_at
     }
 
 @router.patch("/shops/{shop_id}")
