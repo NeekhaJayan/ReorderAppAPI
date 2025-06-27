@@ -18,6 +18,7 @@ class Shop(Base):
     discountpercent= Column(String, nullable=True)
     order_flag=Column(Boolean, default=False)
     plan = Column(String, nullable=True,default='Free')
+    host = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_deleted = Column(Boolean, default=False)  # Boolean to indicate deletion

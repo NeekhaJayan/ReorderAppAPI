@@ -36,6 +36,9 @@ def send_reminders():
         for reminder in reminders:
             try:
                 reminder_product=db.query(Products).filter((Products.product_id==reminder.product_id)&(Products.is_deleted==False)).first()
+               
+                shopName = shop.host if shop.host else shop.shopify_domain
+
                 if reminder_product:
                   customer = (
                       db.query(ShopCustomer)
@@ -67,11 +70,12 @@ def send_reminders():
                           f"Skipping reminder {reminder.reminder_id}: Missing required data."
                       )
                       continue
-
+                
+                
                   if shop.plan=='Free':
-                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
+                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shopName}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
                   else:
-                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&discount={shop.coupon}"
+                    url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shopName}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}&discount={shop.coupon}"
                   print(url)
                   reminder_days = (reminder.product_quantity * int(reminder_product.reorder_days)) - int(shop.buffer_time)
                   placeholders={"first_name": customer.first_name,
