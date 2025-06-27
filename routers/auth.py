@@ -472,7 +472,7 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
         shop_logo=shop.shop_logo,
         email=shop.email,
         host=shop.host,
-        accessToken=shop.accessToken,
+        accesstoken=shop.accessToken,
         created_at=datetime.utcnow(),
         modified_at=datetime.utcnow(),
     )
