@@ -79,6 +79,7 @@ class ShopCreate(BaseModel):
     shop_logo: Optional[str] = None  # Optional field
     email: Optional[EmailStr] = None # Ensures email is valid
     host: Optional[str] = None
+    accessToken : Optional[str] = None
 
 class LineItem(BaseModel):
     product_id: int
@@ -471,6 +472,7 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
         shop_logo=shop.shop_logo,
         email=shop.email,
         host=shop.host,
+        accessToken=shop.accessToken,
         created_at=datetime.utcnow(),
         modified_at=datetime.utcnow(),
     )
