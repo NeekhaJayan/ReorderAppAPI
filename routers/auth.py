@@ -426,6 +426,8 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
             existing_shop.email = shop.email
             existing_shop.host = shop.host
             existing_shop.accesstoken = shop.accessToken
+            existing_shop.message_template_id=None
+            existing_shop.is_deleted = False
             existing_shop.modified_at = datetime.utcnow()
             db.commit()
             db.refresh(existing_shop)
