@@ -30,34 +30,6 @@ models.Base.metadata.create_all(bind=engine)
 db_dependency=Annotated[Session,Depends(get_db)]
 
 API_KEY=os.getenv("SENDINBLUE_API_KEY")
-# class ShopifySettings(BaseSettings):
-#     api_version: str = "2023-04"
-#     shop_name: str  # Shopify shop name
-#     access_token: str  # Shopify access token (optional if provided dynamically)
-
-#     class Config:
-#         env_file = ".env"
-
-# def get_shopify_settings() -> ShopifySettings:
-#     return ShopifySettings()
-
-# class ShopifyService:
-#     def __init__(self, settings: ShopifySettings):
-#         self.settings = settings
-#         self.base_url = f"https://{settings.shop_name}.myshopify.com/admin/api/{settings.api_version}"
-
-    # def get_shop_domain(self):
-    #     url = f"{self.base_url}/shop.json"
-    #     headers = {"X-Shopify-Access-Token": self.settings.access_token}
-
-    #     response = requests.get(url, headers=headers)
-    #     if response.status_code != 200:
-    #         raise HTTPException(
-    #             status_code=response.status_code,
-    #             detail=f"Error fetching shop domain: {response.json().get('errors', 'Unknown error')}",
-    #         )
-        
-    #     return response.json()["shop"]["myshopify_domain"]
 
 class ProductCreate(BaseModel):
     shop_id: int
@@ -276,16 +248,6 @@ from fastapi import FastAPI, Depends
 
 app = FastAPI()
 
-# @router.get("/shop-domain")
-# def get_shop_domain(shopify_settings: ShopifySettings = Depends(get_shopify_settings),db: Session = Depends(get_db)):
-#     shopify_service = ShopifyService(shopify_settings)
-#     shop_domain = shopify_service.get_shop_domain()
-#     shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
-#     if not shop:
-#         raise HTTPException(status_code=404, detail="Shop not found")
-#     return {"shop_id": shop.shop_id}
-
-
 @router.get("/products/{shop_id}")
 async def get_products(shop_id:int, db: Session = Depends(get_db)):
     """
@@ -395,7 +357,7 @@ async def create_product(products: List[ProductCreate], db: Session = Depends(ge
 async def update_product(product_id: int,product: UpdateProduct,db: Session = Depends(get_db)):
     # Fetch the existing product by product_id
     reorder_details = []
-    shop = db.query(Shop).filter(Shop.shop_id == product.shop_id).first()
+    shop = db.query(Shop).filter((Shop.shop_id == product.shop_id)&(Shop.is_deleted == False)).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     existing_product = (db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == product.shopify_variant_id) &(Products.shop_id == product.shop_id)).first())
@@ -456,14 +418,32 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
 
     # Check if shop already exists by domain or email
     existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
+    print(existing_shop)
     if existing_shop:
-        return {"message": "Shop Already Created", "shop_id": existing_shop.shop_id,
-                "buffer_time":existing_shop.buffer_time,
-                "email":existing_shop.email,
-                "template_id":existing_shop.message_template_id,
-                "logo":existing_shop.shop_logo,
-                "coupon":existing_shop.coupon,
-                "discount":existing_shop.discountpercent}
+        if existing_shop.is_deleted:
+            existing_shop.shop_name = shop.shop_name
+            existing_shop.shop_logo = shop.shop_logo
+            existing_shop.email = shop.email
+            existing_shop.host = shop.host
+            existing_shop.accesstoken = shop.accessToken
+            existing_shop.modified_at = datetime.utcnow()
+            db.commit()
+            db.refresh(existing_shop)
+            return {"message": "Shop reactivated successfully", "shop_id": existing_shop.shop_id,
+                    "buffer_time":existing_shop.buffer_time,
+                    "email":existing_shop.email,
+                    "template_id":existing_shop.message_template_id,
+                    "logo":existing_shop.shop_logo,
+                    "coupon":existing_shop.coupon,
+                    "discount":existing_shop.discountpercent}
+        else:
+            return {"message": "Shop Already Created", "shop_id": existing_shop.shop_id,
+                    "buffer_time":existing_shop.buffer_time,
+                    "email":existing_shop.email,
+                    "template_id":existing_shop.message_template_id,
+                    "logo":existing_shop.shop_logo,
+                    "coupon":existing_shop.coupon,
+                    "discount":existing_shop.discountpercent}
     
     # Create a new Shop instance
     new_shop = Shop(
@@ -493,7 +473,7 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
 @router.get("/shops/{shop_domain}")
 async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     # Query the database for the shop by shop_id
-    shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+    shop = db.query(Shop).filter((Shop.shopify_domain == shop_domain)&(Shop.is_deleted == False)).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     
@@ -512,7 +492,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
 @router.patch("/shops/{shop_id}")
 async def update_shop(shop_id: int,plan:str, db: Session = Depends(get_db)):
     # Fetch the existing shop by shop_id
-    existing_shop = db.query(Shop).filter(Shop.shop_id == shop_id).first()
+    existing_shop = db.query(Shop).filter((Shop.shop_id == shop_id)&(Shop.is_deleted == False)).first()
     
     if not existing_shop:
         raise HTTPException(status_code=404, detail="Shop not found")
@@ -532,16 +512,30 @@ async def update_shop(shop_id: int,plan:str, db: Session = Depends(get_db)):
 @router.delete("/webhook/uninstallApp")
 async def delete_shop(shop_domain: str, db: Session = Depends(get_db)):
     try:
-        shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain == shop_domain)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")  
         message_template = db.query(Message_Template).filter((Message_Template.message_template_id == shop.message_template_id) |(Message_Template.shop_name == shop.shopify_domain)).first()
 
-        if message_template:
-            db.delete(message_template)
+        if message_template and not message_template.is_deleted:
+            # db.delete(message_template)
+            message_template.is_deleted= True
+            message_template.modified_at = datetime.utcnow()
 
-        # Delete shop
-        db.delete(shop)
+        orders = db.query(Orders).filter_by(shop_id=shop.shop_id, is_deleted=False).all()
+        for order in orders:
+            order.is_deleted = True
+            order.modified_at = datetime.utcnow()
+            order_products = db.query(OrderProduct).filter_by(order_id = order.order_id, is_deleted=False).all()
+            for op in order_products:
+                op.is_deleted = True
+                op.modified_at = datetime.utcnow()
+            db.query(Reminder).filter_by(order_id = order.order_id, is_deleted=False).update({"is_deleted": True,"modified_at": datetime.utcnow()})
+            
+        db.query(ShopCustomer).filter(ShopCustomer.shop_id == shop.shop_id).update({"is_deleted": True,"modified_at": datetime.utcnow()})   
+        db.query(Products).filter(Products.shop_id == shop.shop_id).update({"is_deleted": True,"updated_at": datetime.utcnow()})
+        shop.is_deleted=True
+        shop.modified_at = datetime.utcnow()
         db.commit()
         return {"message": "Deleted Successfully"}
     except Exception as e:
@@ -554,25 +548,12 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
     try:
     # Process the order payload
         print(f"Received order: {order}")
-        shop = db.query(Shop).filter(Shop.shopify_domain == order.shop).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
         print(customer)
-        if not customer:
-            new_customer=ShopCustomer(
-                shopify_id=order.customer_id,
-                email=order.customer_email,
-                mobile=order.customer_phone,
-                first_name=order.customer_name,
-                billing_mobile_no=order.billing_phone,
-                shipping_mobile_no=order.shipping_phone,
-                shop_id=shop.shop_id
-            )
-            db.add(new_customer)
-            db.commit()
-            db.refresh(new_customer)
-            customer = new_customer
+        
         for line_item in order.line_items:
             # Check product in database
             print(type(order.order_date))
@@ -583,8 +564,22 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             #     order_date = timezone.localize(order_date)
             product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.shopify_variant_id == str(line_item.variant_id))&(Products.is_deleted == False)).first()
             if product:
+
                 
-            
+                if not customer:
+                    new_customer=ShopCustomer(
+                        shopify_id=order.customer_id,
+                        email=order.customer_email,
+                        mobile=order.customer_phone,
+                        first_name=order.customer_name,
+                        billing_mobile_no=order.billing_phone,
+                        shipping_mobile_no=order.shipping_phone,
+                        shop_id=shop.shop_id
+                    )
+                    db.add(new_customer)
+                    db.commit()
+                    db.refresh(new_customer)
+                    customer = new_customer
             # Add the order
                 new_order = Orders(
                     shop_id=shop.shop_id,
@@ -650,26 +645,12 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
     # Process the order payload
         print(f"Received order: {pastOrders}")
         for order in pastOrders:
-            shop = db.query(Shop).filter(Shop.shopify_domain == order.shop).first()
+            shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
             if not shop:
                 raise HTTPException(status_code=404, detail="Shop not found")
             customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
             print(customer)
-            if not customer:
-                new_customer=ShopCustomer(
-                    shopify_id=order.customer_id,
-                    email=order.customer_email,
-                    mobile=order.customer_phone,
-                    first_name=order.customer_name,
-                    billing_mobile_no=order.billing_phone,
-                    shipping_mobile_no=order.shipping_phone,
-                    shop_id=shop.shop_id
-
-                )
-                db.add(new_customer)
-                db.commit()
-                db.refresh(new_customer)
-                customer = new_customer
+            
             for line_item in order.line_items:
                 # Check product in database
                 print(type(order.order_date))
@@ -681,7 +662,21 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                 product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.is_deleted == False)).first()
                 if product:
                     
-                
+                    if not customer:
+                        new_customer=ShopCustomer(
+                            shopify_id=order.customer_id,
+                            email=order.customer_email,
+                            mobile=order.customer_phone,
+                            first_name=order.customer_name,
+                            billing_mobile_no=order.billing_phone,
+                            shipping_mobile_no=order.shipping_phone,
+                            shop_id=shop.shop_id
+
+                        )
+                        db.add(new_customer)
+                        db.commit()
+                        db.refresh(new_customer)
+                        customer = new_customer
                 # Add the order
                     new_order = Orders(
                         shop_id=shop.shop_id,
@@ -747,7 +742,9 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
     
     if emailTemplateSettings:
         print(emailTemplateSettings)
-        shop = db.query(Shop).filter(Shop.shopify_domain == emailTemplateSettings.shop_name).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain == emailTemplateSettings.shop_name)&(Shop.is_deleted == False)).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
         placeholders = {
                             "first_name": "John",
                             "product_name": "Widget Pro",
@@ -759,8 +756,7 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
                             "email":shop.email,
                         }
         html_content = HTML_TEMPLATE.format(**placeholders)
-        if not shop:
-            raise HTTPException(status_code=404, detail="Shop not found")
+        
         if not shop.message_template_id:
 
             new_message_template = Message_Template(
@@ -823,7 +819,7 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
 @router.get("/get-settings")
 async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseClient = Depends(get_s3_client)):
     # Fetch the shop based on shop_name
-    shop = db.query(Shop).filter(Shop.shopify_domain == shop_name).first()
+    shop = db.query(Shop).filter((Shop.shopify_domain == shop_name)&(Shop.is_deleted == False)).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     if shop.shop_logo:
@@ -871,7 +867,7 @@ async def upload_file_to_server(shop_name:str,db:db_dependency,s3: BaseClient = 
     try:
         print(shop_name)
         print(bannerImage.filename)
-        shop = db.query(Shop).filter(Shop.shopify_domain ==shop_name).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain ==shop_name)&(Shop.is_deleted == False)).first()
         if not bannerImage:
             raise HTTPException(status_code=400, detail="No file provided")
         folder_name = f"{shop.shop_id}/{bannerImage.filename}"
@@ -895,7 +891,7 @@ async def delete_product(payload:DeletePayload, db: Session = Depends(get_db)):
     try:
     # Process the order payload
         print(f"Received order: {payload.product_id}")
-        shop = db.query(Shop).filter(Shop.shopify_domain == payload.shop).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain == payload.shop)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
         products = db.query(Products).filter((Products.shopify_product_id == payload.product_id)).all()
@@ -985,7 +981,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
         if not product_id or not shop_domain:
             raise HTTPException(status_code=400, detail="Missing product ID or shop domain")
 
-        shop = db.query(Shop).filter(Shop.shopify_domain == shop_domain).first()
+        shop = db.query(Shop).filter((Shop.shopify_domain == shop_domain)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
 
