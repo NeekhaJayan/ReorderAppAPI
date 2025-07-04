@@ -553,7 +553,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
         shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
+        customer=db.query(ShopCustomer).filter((ShopCustomer.shopify_id == order.customer_id)&(ShopCustomer.is_deleted == False)).first()
         print(customer)
         
         for line_item in order.line_items:
@@ -650,7 +650,7 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
             shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
             if not shop:
                 raise HTTPException(status_code=404, detail="Shop not found")
-            customer=db.query(ShopCustomer).filter(ShopCustomer.shopify_id == order.customer_id).first()
+            customer=db.query(ShopCustomer).filter((ShopCustomer.shopify_id == order.customer_id)&(ShopCustomer.is_deleted == False)).first()
             print(customer)
             
             for line_item in order.line_items:
@@ -845,7 +845,7 @@ async def get_settings(shop_name: str , db: Session = Depends(get_db),s3: BaseCl
         }
 
     # Email template settings
-    email_template = db.query(Message_Template).filter(Message_Template.shop_name == shop_name).first()
+    email_template = db.query(Message_Template).filter((Message_Template.shop_name == shop_name)&(Message_Template.is_deleted == False)).first()
     if email_template:
         email_template_settings = {
             "coupon": shop.coupon,
@@ -988,7 +988,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
             raise HTTPException(status_code=404, detail="Shop not found")
 
         # Get products from the database
-        products = db.query(Products).filter(Products.shopify_product_id == product_id).all()
+        products = db.query(Products).filter((Products.shopify_product_id == product_id)&(Products.is_deleted == False)).all()
         if not products:
             return {"message": "No Products Found", "payload": payload}
 
@@ -1004,7 +1004,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
         # Delete Variants from Database
         if variants_to_delete:
             for variant in variants_to_delete:
-                product_to_delete=db.query(Products).filter((Products.shopify_product_id==str(product_id))&(Products.shopify_variant_id==variant)).first()
+                product_to_delete=db.query(Products).filter((Products.shopify_product_id==str(product_id))&(Products.shopify_variant_id==variant)&(Products.is_deleted == False)).first()
                 if product_to_delete:
                     db.delete(product_to_delete)
             
@@ -1012,7 +1012,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
 
         # Delete Product and Reminder if needed
         for product in products:
-            reminder = db.query(Reminder).filter(Reminder.product_id == product.product_id).first()
+            reminder = db.query(Reminder).filter((Reminder.product_id == product.product_id)&(Reminder.is_deleted == False)).first()
             if reminder:
                 db.delete(reminder)
                 # Send email notification
@@ -1093,7 +1093,7 @@ async def update_product(payload:Request,db:Session=Depends(get_db)) :
 @router.get("/email-status_count")
 async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db:Session=Depends(get_db)) :
     try:
-        product=(db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == variant_id) &(Products.shop_id == shop_id)).first())
+        product=(db.query(Products).filter((Products.shopify_product_id == product_id) &(Products.shopify_variant_id == variant_id) &(Products.shop_id == shop_id)&(Products.is_deleted == False)).first())
         print(product)
         if not product:
             return {
@@ -1101,12 +1101,12 @@ async def getScheduledEmailCount(product_id: str,variant_id: str,shop_id: int,db
                 "Dispatched_Count": 0,
                 "Reorder Email Source":0,
             }
-        scheduled_email_count=db.query(Reminder).filter((Reminder.status=='Pending')&(Reminder.product_id==product.product_id)).count()
-        dispatched_email_count=db.query(Reminder).filter((Reminder.status=='Send')&(Reminder.product_id==product.product_id)).count()
-        product_reminders=db.query(Reminder).filter(Reminder.product_id==product.product_id).all()
+        scheduled_email_count=db.query(Reminder).filter((Reminder.status=='Pending')&(Reminder.product_id==product.product_id)&(Reminder.is_deleted == False)).count()
+        dispatched_email_count=db.query(Reminder).filter((Reminder.status=='Send')&(Reminder.product_id==product.product_id)&(Reminder.is_deleted == False)).count()
+        product_reminders=db.query(Reminder).filter((Reminder.product_id==product.product_id)&(Reminder.is_deleted == False)).all()
         order_source_total_count = sum(
                                     db.query(Orders)
-                                    .filter((Orders.order_id == reminder.order_id) & (Orders.order_source == True))
+                                    .filter((Orders.order_id == reminder.order_id) & (Orders.order_source == True)&(Orders.is_deleted == False))
                                     .count()
                                     for reminder in product_reminders
                             )
