@@ -428,6 +428,8 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
             existing_shop.accesstoken = shop.accessToken
             existing_shop.message_template_id=None
             existing_shop.is_deleted = False
+            existing_shop.plan='Free'
+            existing_shop.order_flag=False
             existing_shop.modified_at = datetime.utcnow()
             db.commit()
             db.refresh(existing_shop)
@@ -1135,10 +1137,11 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
         if not reminder_product:
             raise HTTPException(status_code=404, detail="Product not found")
         quantity=1
+        shopName = shop.host if shop.host else shop.shopify_domain
         if shop.plan=='Free':
-            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}"
+            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shopName}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}"
         else:
-            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shop.shopify_domain}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}&discount={shop.coupon}"
+            url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shopName}&variant_id={reminder_product.shopify_variant_id}&quantity={quantity}&discount={shop.coupon}"
         reminder_days = (1 * int(reminder_product.reorder_days)) - int(shop.buffer_time)
         placeholders={"first_name": shop.shop_name,
                         "product_name": reminder_product.title,
