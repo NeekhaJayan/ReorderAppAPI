@@ -3,21 +3,27 @@ from datetime import timedelta
 from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 import models
+from constants import AWS_BUCKET,AWS_REGION,TRIGGER_EMAIL_FROM,REPLY_TO_EMAIL
 from models import Products,Shop,Orders,ShopCustomer,OrderProduct,Reminder,Message_Template
-from dependencies import get_s3_client,AWS_BUCKET,AWS_REGION,send_email
+from schemas import ProductCreate,UpdateProduct,ShopCreate,LineItem,OrderPayload,DeletePayload,GeneralSettings,EmailTemplateSettings,TriggerEmailRequest,TemplateCreateRequest
+from dependencies import get_s3_client,send_email,send_email_template,create_email_template
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from database import engine ,get_db
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 import pytz
+import boto3
 from dateutil import parser
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 import os
+from constants import AWS_BUCKET,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,CONFIGURATION_SET
+import boto3
 from botocore.client import BaseClient
 from fastapi.responses import RedirectResponse
 from jinja2 import Template
+from fastapi import BackgroundTasks
 
 
 router = APIRouter(
@@ -31,139 +37,6 @@ db_dependency=Annotated[Session,Depends(get_db)]
 
 API_KEY=os.getenv("SENDINBLUE_API_KEY")
 
-class ProductCreate(BaseModel):
-    shop_id: int
-    shopify_product_id: str
-    shopify_variant_id: str
-    title: str
-    image_url:str
-    reorder_days: int
-
-class UpdateProduct(BaseModel):
-    shop_id: int
-    shopify_product_id: str
-    shopify_variant_id:str
-    reorder_days: Optional[int] = None
-
-class ShopCreate(BaseModel):
-    shopify_domain: str
-    shop_name: Optional[str] = None
-    shop_logo: Optional[str] = None  # Optional field
-    email: Optional[EmailStr] = None # Ensures email is valid
-    host: Optional[str] = None
-    accessToken : Optional[str] = None
-
-class LineItem(BaseModel):
-    product_id: int
-    variant_id: Optional[int] = None
-    quantity: int
-    status:str
-    price: str
-
-class OrderPayload(BaseModel):
-    shop:str
-    shopify_order_id: int
-    customer_id: int
-    customer_email: str
-    customer_name: str
-    customer_phone: Optional[str] = None
-    shipping_phone:Optional[str] = None
-    billing_phone:Optional[str] = None
-    line_items: List[LineItem]
-    order_date: str
-    order_source:bool
-
-class DeletePayload(BaseModel):
-    shop:str
-    product_id:int
-
-class GeneralSettings(BaseModel):
-    shop_name:str
-    bannerImage:UploadFile
-    tab: str
-class EmailTemplateSettings(BaseModel):
-    shop_name:str
-    tab: str
-    subject: str
-    fromName: str
-    fromEmail: EmailStr
-    coupon: Optional[str] = None
-    discountPercent: Optional[str] = None
-    bufferTime: Optional[int] = None
-
-
-
-HTML_TEMPLATE = """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                </head>
-                <body style="margin:0; padding:0; background-color:#f4f4f4;">
-                    <table role="presentation" width="100%" bgcolor="#f4f4f4" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                        <td align="center">
-                        <table role="presentation" width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" style="margin:20px auto; padding:20px; border-radius:8px;">
-                            
-                            <tr>
-                            <td align="center" bgcolor="#eeeeee" style="padding:20px; border-radius:8px 8px 0 0;">
-                                <img src="{product_image}" alt="{shop}" width="120" style="display:block;">
-                                <h1 style="font-size:24px; color:#333333; font-family:Arial, sans-serif;">Time to Restock!</h1>
-                            </td>
-                            </tr>
-                            
-                            <tr>
-                            <td align="center" style="padding:20px; font-family:Arial, sans-serif; color:#333333;">
-                                <p style="font-size:16px;">Hello {first_name},</p>
-                                <p style="font-size:16px;">We noticed it's been <b>{remaining_days}</b> days since you purchased <b>{product_name}</b>. You might be running low!</p>
-                                <p style="font-size:16px;">Don't wait until you run out! Restock now and keep enjoying your favorite products.</p>
-                            </td>
-                            </tr>
-
-                            <tr>
-                            <td align="center" style="padding:10px;">
-                                <img src="{product_image}" alt="{product_name}" width="150" style="display:block; margin:0 auto; border-radius:5px;">
-                            </td>
-                            </tr>
-                            <tr>
-                            <td align="center" style="padding:5px 20px; font-family:Arial, sans-serif;">
-                                <h3 style="font-size:18px; color:#333333;">{product_name}</h3>
-                                <p style="font-size:14px;"><b>Quantity:</b> {quantity}</p>
-                            </td>
-                            </tr>
-
-                            <tr>
-                            <td align="center" style="padding:20px;">
-                                <a href="{reorder_url}" target="_blank" style="display:inline-block; padding:12px 20px; background-color:#007bff; color:#ffffff; text-decoration:none; border-radius:5px; font-size:16px; font-weight:bold;">
-                                REORDER NOW
-                                </a>
-                            </td>
-                            </tr>
-
-                            <tr>
-                            <td align="center" bgcolor="#f9f1dc" style="padding:15px; border-radius:5px;">
-                                <h3 style="color:#d67e00; margin:0;">SPECIAL OFFER</h3>
-                                <p style="font-size:16px;">Use code <span style="font-size:18px; font-weight:bold; color:#d67e00; background:#fff; padding:5px 10px; border-radius:4px;">RESTOCK10</span> at checkout</p>
-                                <p style="font-size:16px;">Save 10% on your reorder</p>
-                            </td>
-                            </tr>
-
-                            <tr>
-                            <td align="center" style="padding:20px; font-size:12px; color:#777777; font-family:Arial, sans-serif;">
-                                <p>{shop} | {email} </p>
-                                <p>Powered by <b>ReOrder Reminder Pro</b></p>
-                            </td>
-                            </tr>
-
-                        </table>
-                        </td>
-                    </tr>
-                    </table>
-                </body>
-                </html>
-
-                """
 
 DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                     <html lang="en">
@@ -244,9 +117,6 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                     </body>
                     </html>
                     """
-from fastapi import FastAPI, Depends
-
-app = FastAPI()
 
 @router.get("/products/{shop_id}")
 async def get_products(shop_id:int, db: Session = Depends(get_db)):
@@ -414,11 +284,12 @@ async def update_product(product_id: int,product: UpdateProduct,db: Session = De
         raise HTTPException(status_code=500, detail=f"Error updating product: {str(e)}")
 
 @router.post("/shops")
-async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
+async def create_shop(shop: ShopCreate, db: Session = Depends(get_db),background_tasks: BackgroundTasks = None,):
 
     # Check if shop already exists by domain or email
     existing_shop = db.query(Shop).filter(Shop.shopify_domain == shop.shopify_domain).first()
     print(existing_shop)
+    
     if existing_shop:
         if existing_shop.is_deleted:
             existing_shop.shop_name = shop.shop_name
@@ -433,6 +304,9 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
             existing_shop.modified_at = datetime.utcnow()
             db.commit()
             db.refresh(existing_shop)
+
+            background_tasks.add_task(send_email_template,to=shop.email,sender=TRIGGER_EMAIL_FROM,template_name="WelcomeTemplate",store_name=shop.shop_name,reply_to=REPLY_TO_EMAIL)
+
             return {"message": "Shop reactivated successfully", "shop_id": existing_shop.shop_id,
                     "buffer_time":existing_shop.buffer_time,
                     "email":existing_shop.email,
@@ -463,6 +337,8 @@ async def create_shop(shop: ShopCreate, db: Session = Depends(get_db)):
     db.add(new_shop)
     db.commit()
     db.refresh(new_shop)
+
+    background_tasks.add_task(send_email_template,to=new_shop.email,sender=TRIGGER_EMAIL_FROM,template_name="WelcomeTemplate",store_name=shop.shop_name,reply_to=REPLY_TO_EMAIL)
     return {"message": "Shop created successfully",
             "shop_id": new_shop.shop_id,
             "buffer_time":new_shop.buffer_time,
@@ -749,17 +625,6 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         shop = db.query(Shop).filter((Shop.shopify_domain == emailTemplateSettings.shop_name)&(Shop.is_deleted == False)).first()
         if not shop:
             raise HTTPException(status_code=404, detail="Shop not found")
-        placeholders = {
-                            "first_name": "John",
-                            "product_name": "Widget Pro",
-                            "product_image": "https://via.placeholder.com/150x150.png?text=Widget+Pro",
-                            "quantity": "2",
-                            "remaining_days": "5",
-                            "reorder_url": "https://yourshop.com/reorder/widget-pro",
-                            "shop":shop.shop_name,
-                            "email":shop.email,
-                        }
-        html_content = HTML_TEMPLATE.format(**placeholders)
         
         if not shop.message_template_id:
 
@@ -799,22 +664,6 @@ async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Sessio
         
         db.commit()
         db.refresh(shop)
-        # -------Test Email Settings----
-        # configuration = sib_api_v3_sdk.Configuration()
-        # configuration.api_key['api-key'] =API_KEY 
-        # api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-        # # sender_name= emailTemplateSettings.mail_server if emailTemplateSettings.mail_server else shop.shop_name
-        # email_data = sib_api_v3_sdk.SendSmtpEmail(
-        #     to=[{"email": shop.email}],
-        #     sender={"name": emailTemplateSettings.fromName,"email": emailTemplateSettings.fromEmail},
-        #     subject=f"Test Mail: {emailTemplateSettings.subject}",
-        #     html_content=html_content
-        # )
-        # try:
-        #     api_instance.send_transac_email(email_data)
-            
-        # except ApiException as e:
-        #     print(f"Error sending email: {e}")
         return {"Your email template has been saved successfully! All future reminders will use this updated template to engage your customers." }
 
     else:
@@ -1181,3 +1030,55 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
     except ApiException as e:
         print(f"Error sending email: {e}")
 
+@router.post("/trigger_emails")
+async def triggerEmails(data:TriggerEmailRequest,db:Session=Depends(get_db)):
+  
+    try:
+        response=send_email_template(data.to, TRIGGER_EMAIL_FROM, data.template_name, data.store_name,REPLY_TO_EMAIL)
+        return {"message": "Email sent", "message_id": response["MessageId"]}
+    except Exception as e:
+        print("Error sending templated email:", e)
+        return {"error": str(e)}
+
+@router.post("/create_template")
+async def createTemplate(data: TemplateCreateRequest,db:Session=Depends(get_db)):
+    try:
+        result = create_email_template(data.templatename, data.subject, data.html_body)
+        return result
+    except client.exceptions.AlreadyExistsException:
+        raise HTTPException(status_code=400, detail="Template already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/update_template")
+async def updateTemplate(data: TemplateCreateRequest,db:Session=Depends(get_db)):
+    client = boto3.client('sesv2',region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+    TEXT_TEMPLATE = """Hello {{store_name}},
+
+            Welcome to ReOrder Reminder Pro!
+
+            Thanks for installing ReOrder Reminder Pro. We're excited to help you automate reorder emails and boost your repeat sales.
+
+            🎥 Watch the demo video: https://www.youtube.com/watch?v=rJFaR6rXD68
+
+            🌐 Visit our website: https://reorderreminderpro.decagrowth.com/#faq
+
+            If you have any questions, just reply to this email or contact us via WhatsApp in the app.
+
+            Best regards,  
+            Leo  
+            Founder, DecaGrowth"""
+    try:
+        response = client.update_email_template(
+            TemplateName=data.templatename,
+            TemplateContent={
+                "Subject": data.subject,
+                "Text": TEXT_TEMPLATE,
+                "Html": data.html_body
+            }
+        )
+        return {"message": "Template updated successfully", "template": data.templatename}
+    except client.exceptions.AlreadyExistsException:
+        return {"error": f"Template '{templatename}' already exists"}
+    except Exception as e:
+        return {"error": str(e)}

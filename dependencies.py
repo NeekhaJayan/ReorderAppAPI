@@ -6,36 +6,20 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
- 
-AWS_BUCKET='reorderpro.decagrowth.com'
-AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY=os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_REGION="ap-south-1"
+from constants import AWS_BUCKET,AWS_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,CONFIGURATION_SET
+import json
 
 s3_resource = boto3.resource('s3',region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 BUCKET=s3_resource.Bucket(AWS_BUCKET)
 
+def get_s3_client():
+    return boto3.client('s3',region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
-# def send_email(to, subject, body, sender_email,sender_name):
-#     configuration = sib_api_v3_sdk.Configuration()
-#     configuration.api_key['api-key'] = API_KEY
-#     api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-#     email_data = sib_api_v3_sdk.SendSmtpEmail(
-#         to=[{"email": to}],
-#         sender={"name": sender_name, "email": sender_email},
-#         subject=subject,
-#         html_content=body
-#     )
-#     try:
-#         api_instance.send_transac_email(email_data)
-#         print(f"Email sent to {to}")
-        
-#     except ApiException as e:
-#         print(f"Error sending email: {e}")
+def get_sesv2_client():
+    return boto3.client('sesv2',region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
 def send_email(to, subject,html_body, plain_body, sender_email,sender_name,reply_to):
-    CONFIGURATION_SET = "my-first-configuration-set"
+    # CONFIGURATION_SET = "my-first-configuration-set"
     SENDER=f'{sender_name}<{sender_email}>'
     CHARSET = "UTF-8"
 
@@ -51,32 +35,7 @@ def send_email(to, subject,html_body, plain_body, sender_email,sender_name,reply
     client = boto3.client('ses',region_name=AWS_REGION,aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     try:
-    #Provide the contents of the email.
-        # response = client.send_email(
-        #     Destination={
-        #         'ToAddresses': [
-        #             to,
-        #         ],
-        #     },
-        #     Message={
-        #         'Body': {
-        #             'Html': {
-        #                 'Charset': CHARSET,
-        #                 'Data': body,
-        #             },
-                    
-        #         },
-        #         'Subject': {
-        #             'Charset': CHARSET,
-        #             'Data': subject,
-        #         },
-        #     },
-        #     Source=SENDER,
-        #     ReplyToAddresses=[reply_to], 
-        #     # If you are not using a configuration set, comment or delete the
-        #     # following line
-        #     ConfigurationSetName=CONFIGURATION_SET,
-        # )
+    
         response = client.send_raw_email(
             Source=SENDER,
             Destinations=[to],
@@ -84,14 +43,67 @@ def send_email(to, subject,html_body, plain_body, sender_email,sender_name,reply
             ConfigurationSetName=CONFIGURATION_SET
         )
         print("Email sent! Message ID:", response['MessageId'])
-# Display an error if something goes wrong.	
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
         print("Email sent! Message ID:"),
         print(response['MessageId'])
 
+def send_email_template(to,sender,template_name,store_name,reply_to):
+    
+    template_data = {
+        "store_name": store_name
+    }
+    client = get_sesv2_client()
+    try:
+        response = client.send_email(
+            FromEmailAddress=sender,
+            Destination={"ToAddresses": [to]},
+            Content={
+                "Template": {
+                    "TemplateName": template_name,
+                    "TemplateData": json.dumps(template_data)
+                }
+            },
+            ReplyToAddresses=reply_to,
+            ConfigurationSetName=CONFIGURATION_SET
+        )
+        print("Templated email sent. Message ID:", response["MessageId"])
+        return response
+    except Exception as e:
+        print("Error sending templated email:", e)
+        return {"error": str(e)}
 
-def get_s3_client():
-    return boto3.client('s3',region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+def create_email_template(templatename,subject,html_body):
 
+    client = get_sesv2_client()
+    TEXT_TEMPLATE = """Hello {{store_name}},
+
+            Welcome to ReOrder Reminder Pro!
+
+            Thanks for installing ReOrder Reminder Pro. We're excited to help you automate reorder emails and boost your repeat sales.
+
+            🎥 Watch the demo video: https://www.youtube.com/watch?v=rJFaR6rXD68
+
+            🌐 Visit our website: https://reorderreminderpro.decagrowth.com/#faq
+
+            If you have any questions, just reply to this email or contact us via WhatsApp in the app.
+
+            Best regards,  
+            Leo  
+            Founder, DecaGrowth"""
+    try:
+        response = client.create_email_template(
+                TemplateName=templatename,
+                TemplateContent={
+                    "Subject": subject,
+                    "Text": TEXT_TEMPLATE,
+                    "Html": html_body
+                }
+            )
+        
+        return {"message": "Template created successfully", "template": templatename}
+    except client.exceptions.AlreadyExistsException:
+        return {"error": f"Template '{templatename}' already exists"}
+    except Exception as e:
+        return {"error": str(e)}
