@@ -37,7 +37,7 @@ def send_reminders():
             try:
                 reminder_product=db.query(Products).filter((Products.product_id==reminder.product_id)&(Products.is_deleted==False)).first()
                
-                shopName = shop.host if shop.host else shop.shopify_domain
+                
 
                 if reminder_product:
                   customer = (
@@ -71,7 +71,7 @@ def send_reminders():
                       )
                       continue
                 
-                
+                  shopName = shop.host if shop.host else shop.shopify_domain
                   if shop.plan=='Free':
                     url=f"https://rrpapp.decagrowth.com/redirect?shop_domain={shopName}&variant_id={reminder_product.shopify_variant_id}&quantity={reminder.product_quantity}"
                   else:
