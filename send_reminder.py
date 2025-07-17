@@ -11,8 +11,8 @@ from jinja2 import Template
 app = FastAPI()
 
 
-AWS_BUCKET=os.getenv("AWS_BUCKET")
-AWS_REGION=os.getenv("AWS_REGION_NAME")
+AWS_BUCKET=os.getenv("AWS_BUCKET","reorderpro.decagrowth.com")
+AWS_REGION=os.getenv("AWS_REGION_NAME", "ap-south-1")
 # AWS_REGION = "ap-south-1"
 
 
