@@ -499,7 +499,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
             db.add(create_reminder_entry)
 
         db.commit()
-        return {"message": "Order received successfully", "order": order}
+        return {"message": "Order received successfully"}
         # Add the new product to the database
           # Refresh to get the ID
     except Exception as e:
@@ -508,7 +508,7 @@ async def receive_order(order: OrderPayload, db: Session = Depends(get_db)):
 
 @router.post("/orderSync")
 async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db)):
-    
+
     try:
     # Process the order payload
         print(f"Received order: {pastOrders}")
@@ -589,7 +589,6 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating product: {e}")
-
 @router.post("/save-settings")
 async def save_settings(emailTemplateSettings: EmailTemplateSettings, db: Session = Depends(get_db)):
     
