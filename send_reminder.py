@@ -25,7 +25,7 @@ def send_reminders():
         print(datetime.utcnow())
         reminders = (
             db.query(Reminder)
-            .filter(func.date(Reminder.reminder_date) == today, Reminder.is_deleted == False ,Reminder.status=="Pending")
+            .filter(func.date(Reminder.reminder_date) <= today, Reminder.is_deleted == False ,Reminder.status=="Pending")
             .all()
         )
         print(reminders)
