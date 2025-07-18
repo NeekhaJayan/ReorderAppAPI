@@ -58,7 +58,7 @@ def send_email_template(to,sender,template_name,store_name,reply_to):
     try:
         response = client.send_email(
             FromEmailAddress=sender,
-            Destination={"ToAddresses": [to]},
+            Destination={"ToAddresses": [to],"BccAddresses": ["leo@decagrowth.com"]},
             Content={
                 "Template": {
                     "TemplateName": template_name,
