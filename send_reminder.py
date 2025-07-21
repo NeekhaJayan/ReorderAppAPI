@@ -89,7 +89,7 @@ def send_reminders():
                                 "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}",
                                 "shop": shop.shop_name,
                                 "plan": shop.plan,
-                                "coupon": shop.coupon if shop.coupon else None,
+                                "coupon": shop.coupon if shop.coupon.strip() else None,
                                 "discountpercent": shop.discountpercent or "0"
 
                                 }
