@@ -975,7 +975,7 @@ async def testEmailReminder(product_id:str,variant_id:str,shop_id:int,db:Session
                         "image_path":f"https://s3.{AWS_REGION}.amazonaws.com/{AWS_BUCKET}/{shop.shop_id}/{shop.shop_logo}",
                         "shop": shop.shop_name,
                         "plan": shop.plan,
-                        "coupon": shop.coupon or "",
+                        "coupon": shop.coupon if shop.coupon.strip() else None,
                         "discountpercent": shop.discountpercent or "0"
 
                                 }          
