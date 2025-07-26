@@ -356,7 +356,7 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
     shop = db.query(Shop).filter((Shop.shopify_domain == shop_domain)&(Shop.is_deleted == False)).first()
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
-    
+    product_count = db.query(Products).filter((Products.shop_id == shop.shop_id) & (Products.is_deleted == False)).count()
     # Return shop details
     return {
         "shop_id": shop.shop_id,
@@ -366,8 +366,11 @@ async def get_shop(shop_domain: str, db: Session = Depends(get_db)):
         "logo":shop.shop_logo,
         "coupon":shop.coupon,
         "discount":shop.discountpercent,
-        "createdAt":shop.created_at
+        "createdAt":shop.created_at,
+        "product_count":product_count,
+        "order_sync_count":shop.order_sync_count
     }
+
 
 @router.patch("/shops/{shop_id}")
 async def update_shop(shop_id: int,plan:str, db: Session = Depends(get_db)):
@@ -512,6 +515,7 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
     try:
     # Process the order payload
         print(f"Received order: {pastOrders}")
+        orders_created = 0
         for order in pastOrders:
             shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
             if not shop:
@@ -553,6 +557,8 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                 )
                 db.add(new_order)
                 db.flush()
+                orders_created += 1
+                
 
             # Add the order product
                 new_order_product = OrderProduct(
@@ -583,8 +589,8 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
         shop.order_flag=True
         db.commit()
         db.refresh(shop)
-        return {"message": "Order synced Successfully"} 
-            
+        print("orders_inserted:",orders_created)
+        return {"message": "Order synced Successfully","orders_inserted": orders_created}             
             
     except Exception as e:
         db.rollback()

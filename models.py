@@ -17,6 +17,7 @@ class Shop(Base):
     coupon = Column(String, nullable=True)
     discountpercent= Column(String, nullable=True)
     order_flag=Column(Boolean, default=False)
+    order_sync_count=Column(Integer,default=10)
     plan = Column(String, nullable=True,default='Free')
     host = Column(String, nullable=True)
     accesstoken = Column(String, nullable=True)
