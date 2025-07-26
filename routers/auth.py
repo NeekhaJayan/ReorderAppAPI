@@ -516,10 +516,14 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
     # Process the order payload
         print(f"Received order: {pastOrders}")
         orders_created = 0
+        if not pastOrders:
+            return {"message": "Empty order list received","orders_inserted": orders_created}
+        first_order = pastOrders[0]
+        shop = db.query(Shop).filter((Shop.shopify_domain == first_order.shop)&(Shop.is_deleted == False)).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
         for order in pastOrders:
-            shop = db.query(Shop).filter((Shop.shopify_domain == order.shop)&(Shop.is_deleted == False)).first()
-            if not shop:
-                raise HTTPException(status_code=404, detail="Shop not found")
+            
             customer=db.query(ShopCustomer).filter((ShopCustomer.shopify_id == order.customer_id)&(ShopCustomer.is_deleted == False)).first()
             print(customer)
             
@@ -579,7 +583,7 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                     product_id=product.product_id,
                     order_id=new_order.order_id,
                     reminder_date=reminder_date,
-                    shop_id=order.shop,
+                    shop_id=shop.shop_id,
                     product_title=product.title,
                     product_quantity=line_item.quantity,
                     image_url=product.image_url
