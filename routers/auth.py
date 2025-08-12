@@ -532,7 +532,7 @@ async def ordersync(pastOrders:List[OrderPayload],db: Session = Depends(get_db))
                 print(type(order.order_date))
                 order_date = datetime.strptime(order.order_date, "%Y-%m-%dT%H:%M:%S%z")
                 print(type(order_date))
-                product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.is_deleted == False)).first()
+                product = db.query(Products).filter((Products.shopify_product_id == line_item.product_id)&(Products.shopify_variant_id == str(line_item.variant_id))&(Products.is_deleted == False)).first()
                 if not product:
                     print(f"Skipped: product not found (product_id={line_item.product_id}, variant_id={line_item.variant_id})")
                     continue
