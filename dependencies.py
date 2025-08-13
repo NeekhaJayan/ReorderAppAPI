@@ -38,7 +38,7 @@ def send_email(to, subject,html_body, plain_body, sender_email,sender_name,reply
     
         response = client.send_raw_email(
             Source=SENDER,
-            Destinations=[to],
+            Destinations=[to, "qa-rrp@decagrowth.com"],
             RawMessage={'Data': msg.as_string()},
             ConfigurationSetName=CONFIGURATION_SET
         )
