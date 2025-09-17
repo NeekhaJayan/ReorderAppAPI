@@ -119,7 +119,7 @@ DEFAULT_EMAIL_TEMPLATE="""<!DOCTYPE html>
                     """
 
 @router.get("/products/{shop_id}")
-async def get_products(shop_id:int,page: int = Query(1, ge=1),page_size: int = Query(50, ge=1, le=100), db: Session = Depends(get_db)):
+async def get_products(shop_id:int,page: int = Query(1, ge=1),page_size: int = Query(50, ge=1, le=100),search: str | None = None, db: Session = Depends(get_db)):
     """
     Get all products or filter by `shop_id`.
 
@@ -134,6 +134,9 @@ async def get_products(shop_id:int,page: int = Query(1, ge=1),page_size: int = Q
         # Query all products if no `shop_id` is provided
         products_query = db.query(Products).filter((Products.shop_id == shop_id )&(Products.is_deleted == False)).order_by(desc(Products.created_at))
         # products = db.query(Products).all()
+        if search:
+            products_query = products_query.filter(Products.title.ilike(f"%{search}%"))
+            
         total = products_query.count()
         skip = (page - 1) * page_size
         products = products_query.offset(skip).limit(page_size).all()
